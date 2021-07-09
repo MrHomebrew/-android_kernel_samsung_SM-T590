@@ -426,6 +426,16 @@ static void s2mu004_reset_fg(struct s2mu004_fuelgauge_data *fuelgauge)
 	mutex_unlock(&fuelgauge->fg_lock);
 #endif
 	WA_0_issue_at_init(fuelgauge);
+	
+	/*After FG reset current battery data version get reset to default value 1, causing mismatch in bootloader and kernel FG data verion.
+	 Below code restores the FG data version in 0x48 register to it's initalized value.*/
+	pr_info("%s: FG data version %02x\n", __func__, fuelgauge->info.data_ver);
+
+	s2mu004_read_reg_byte(fuelgauge->i2c, S2MU004_REG_FG_ID, &temp);
+	temp &= 0xF0;
+	temp |= fuelgauge->info.data_ver;
+	s2mu004_write_reg_byte(fuelgauge->i2c, S2MU004_REG_FG_ID, temp);
+	
 	pr_err("%s: Reset FG completed\n", __func__);
 }
 static void s2mu004_restart_gauging(struct s2mu004_fuelgauge_data *fuelgauge)
@@ -566,6 +576,8 @@ static int s2mu004_get_rawsoc(struct s2mu004_fuelgauge_data *fuelgauge)
 	int ocv_pwroff = 0, ocv_pwr_voltagemode = 0;
 	int target_soc = 0;
 	int float_voltage = 0;
+	int scaled_soc = 0;
+
 	/* SOC VM Monitoring For debugging SOC error */
 	u8 r_monoutsel;
 	u8 mount_data[2];
@@ -632,7 +644,7 @@ static int s2mu004_get_rawsoc(struct s2mu004_fuelgauge_data *fuelgauge)
 	/* SOC VM Monitoring For debugging SOC error */
 	s2mu004_read_reg_byte(fuelgauge->i2c, S2MU004_REG_MONOUT_SEL, &r_monoutsel);
 	s2mu004_write_reg_byte(fuelgauge->i2c, S2MU004_REG_MONOUT_SEL, 0x02);
-	mdelay(10);
+	msleep(10);
 	if (s2mu004_read_reg(fuelgauge->i2c, S2MU004_REG_MONOUT, mount_data) < 0)
 		return -EINVAL;
 	s2mu004_write_reg_byte(fuelgauge->i2c, S2MU004_REG_MONOUT_SEL, r_monoutsel);
@@ -693,7 +705,23 @@ static int s2mu004_get_rawsoc(struct s2mu004_fuelgauge_data *fuelgauge)
 
 	psy_do_property("battery", get, POWER_SUPPLY_PROP_CAPACITY, value);
 	dev_info(&fuelgauge->i2c->dev, "%s: UI SOC = %d\n", __func__, value.intval);
-	if ((value.intval >= 98) ||
+	/* Use scaled capacity for high SOC voltage mode check
+	 * to prevent backflow of SOC
+	 */
+	if (fuelgauge->pdata->capacity_calculation_type &
+		(SEC_FUELGAUGE_CAPACITY_TYPE_SCALE |
+		 SEC_FUELGAUGE_CAPACITY_TYPE_DYNAMIC_SCALE)) {
+		scaled_soc = fuelgauge->info.soc / 10;
+		scaled_soc = (scaled_soc < fuelgauge->pdata->capacity_min) ?
+			0 : ((scaled_soc - fuelgauge->pdata->capacity_min) * 1000 /
+			(fuelgauge->capacity_max - fuelgauge->pdata->capacity_min));
+
+		dev_info(&fuelgauge->i2c->dev, "%s: scaled_soc = %d\n",
+				__func__, scaled_soc);
+	} else
+		scaled_soc = value.intval * 10;
+
+	if ((scaled_soc >= 979) ||
 		((fuelgauge->is_charging == true) &&
 		(avg_vbat > float_voltage) && avg_current < 500)) {
 		if(fuelgauge->mode == CURRENT_MODE) { /* switch to VOLTAGE_MODE */
@@ -702,8 +730,8 @@ static int s2mu004_get_rawsoc(struct s2mu004_fuelgauge_data *fuelgauge)
 			dev_info(&fuelgauge->i2c->dev, "%s: FG is in high soc voltage mode\n", __func__);
 		}
 	}
-	else if (((avg_current > 550) && (value.intval < 97)) ||
-				((avg_current < 10) && (value.intval < 97))) {
+	else if (((avg_current > 550) && (scaled_soc < 970)) ||
+				((avg_current < 10) && (scaled_soc < 970))) {
 		if(fuelgauge->mode == HIGH_SOC_VOLTAGE_MODE) {
 			fuelgauge->mode = CURRENT_MODE;
 			s2mu004_write_reg_byte(fuelgauge->i2c, 0x4A, 0x10);
@@ -901,7 +929,7 @@ static int s2mu004_get_monout_avgvbat(struct s2mu004_fuelgauge_data *fuelgauge)
 	
 	mutex_lock(&fuelgauge->fg_lock);
 	s2mu004_write_reg_byte(fuelgauge->i2c, S2MU004_REG_MONOUT_SEL, 0x27);
-	mdelay(50);
+	msleep(50);
 	if (s2mu004_read_reg(fuelgauge->i2c, S2MU004_REG_MONOUT, data) < 0)
 		goto err;
 	compliment = (data[1] << 8) | (data[0]);
@@ -1077,14 +1105,16 @@ static void s2mu004_fg_reset_capacity_by_jig_connection(struct s2mu004_fuelgauge
 		data &= 0xCF;
 		data |= 0x10;
 		s2mu004_write_reg_byte(fuelgauge->i2c, S2MU004_REG_CTRL0, data);
-		mdelay(1000);
+		msleep(1000);
 		s2mu004_restart_gauging(fuelgauge);
-	} else if (meas_mode == SEC_BAT_INBAT_FGSRC_SWITCHING_OFF) {
+	} else if ((meas_mode == SEC_BAT_INBAT_FGSRC_SWITCHING_OFF)||
+		(meas_mode == SEC_BAT_FGSRC_SWITCHING_OFF)) {
 		s2mu004_read_reg_byte(fuelgauge->i2c, S2MU004_REG_CTRL0, &data);
 		data &= 0xCF;
 		data |= 0x30;
 		s2mu004_write_reg_byte(fuelgauge->i2c, S2MU004_REG_CTRL0, data);
-		mdelay(1000);
+		msleep(1000);
+		if (meas_mode == SEC_BAT_INBAT_FGSRC_SWITCHING_OFF)
 		s2mu004_restart_gauging(fuelgauge);
 	}
 	
@@ -1225,6 +1255,8 @@ static int s2mu004_fg_get_property(struct power_supply *psy, enum power_supply_p
 	case POWER_SUPPLY_PROP_CAPACITY:
 		if (val->intval == SEC_FUELGAUGE_CAPACITY_TYPE_RAW) {
 			val->intval = s2mu004_get_rawsoc(fuelgauge);
+		} else if (val->intval == SEC_FUELGAUGE_CAPACITY_TYPE_DYNAMIC_SCALE) {
+			val->intval = fuelgauge->raw_capacity;
 		} else {
 			val->intval = s2mu004_get_rawsoc(fuelgauge) / 10;
 			if (fuelgauge->pdata->capacity_calculation_type &
@@ -1238,6 +1270,7 @@ static int s2mu004_fg_get_property(struct power_supply *psy, enum power_supply_p
 				val->intval = 1000;
 			if (val->intval < 0)
 				val->intval = 0;
+			fuelgauge->raw_capacity = val->intval;
 			/* get only integer part */
 			val->intval /= 10;
 			if (!fuelgauge->is_charging &&
@@ -1378,7 +1411,7 @@ static int s2mu004_fg_set_property(struct power_supply *psy, enum power_supply_p
 			temp &= 0xCF;
 			temp |= 0x30;
 			s2mu004_write_reg_byte(fuelgauge->i2c, S2MU004_REG_CTRL0, temp);
-			s2mu004_fg_reset_capacity_by_jig_connection(fuelgauge, 1);
+			s2mu004_fg_reset_capacity_by_jig_connection(fuelgauge,  val->intval);
 			break;
 #if defined(CONFIG_BATTERY_AGE_FORECAST)
 		case POWER_SUPPLY_EXT_PROP_UPDATE_BATTERY_DATA:
@@ -1695,6 +1728,11 @@ static int s2mu004_fuelgauge_probe(struct i2c_client *client, const struct i2c_d
 	fuelgauge->psy_fg.set_property  = s2mu004_fg_set_property;
 	fuelgauge->psy_fg.properties    = s2mu004_fuelgauge_props;
 	fuelgauge->psy_fg.num_properties = ARRAY_SIZE(s2mu004_fuelgauge_props);
+	
+	if (!fuelgauge->info.data_ver) {
+		s2mu004_read_reg_byte(fuelgauge->i2c, S2MU004_REG_FG_ID, &temp);
+		fuelgauge->info.data_ver = (temp & 0x0F);
+	}
 
 	/* 0x48[7:4]=0010 : EVT2 */
 	fuelgauge->revision = 0;

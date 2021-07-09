@@ -20,6 +20,13 @@
 #include "msm_otp.h"
 #include <media/msm_cam_sensor.h>
 
+#ifdef CONFIG_S5K5E9YX
+#include "s5k5e9yx_otp.h"
+#endif
+#ifdef CONFIG_S5K5E3YX
+#include "s5k5e3yx_otp.h"
+#endif
+
 #define MSM_EEPROM_DEBUG 1
 
 #undef CDBG
@@ -33,6 +40,13 @@
 
 #ifdef CONFIG_COMPAT
 static struct v4l2_file_operations msm_eeprom_v4l2_subdev_fops;
+#endif
+
+#if defined(CONFIG_GET_FRONT_MODULE_ID_OTP)
+extern uint8_t front_module_id[S5K5E9_OTP_MODULE_ID_SIZE + 1];
+#endif
+#if defined(CONFIG_GET_FRONT_SENSOR_ID)
+extern uint8_t front_sensor_id[S5K5E9_OTP_SENSOR_ID_SIZE + 1];
 #endif
 
 uint8_t *map_data = NULL;
@@ -2081,53 +2095,50 @@ struct msm_camera_i2c_reg_setting init_otp = {
 	init_otp_reg, sizeof(init_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 100
 };
 
-static struct msm_camera_i2c_reg_array init_read_s5k5e3yx_otp_reg[] = {
-	{0x0A00, 0x04},
-	{0x0A02, 0x02},
-	{0x0A00, 0x01},
+struct msm_camera_i2c_reg_setting load_otp_setfile = {
+#ifdef CONFIG_S5K5E9YX
+	load_s5k5e9yx_otp_setfile_reg, sizeof(load_s5k5e9yx_otp_setfile_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 50
+#endif
+#ifdef CONFIG_S5K5E3YX
+	load_s5k5e3yx_otp_setfile_reg, sizeof(load_s5k5e3yx_otp_setfile_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
+#endif
 };
-
 
 struct msm_camera_i2c_reg_setting init_read_otp = {
+#ifdef CONFIG_S5K5E9YX
+	init_read_s5k5e9yx_otp_reg, sizeof(init_read_s5k5e9yx_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
+#endif
+#ifdef CONFIG_S5K5E3YX
 	init_read_s5k5e3yx_otp_reg, sizeof(init_read_s5k5e3yx_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
-};
-
-static struct msm_camera_i2c_reg_array finish_read_s5k5e3yx_otp_reg[] = {
-	{0x0A00, 0x04},
-	{0x0A00, 0x00},
+#endif
 };
 
 struct msm_camera_i2c_reg_setting finish_read_otp = {
+#ifdef CONFIG_S5K5E9YX
+	finish_read_s5k5e9yx_otp_reg, sizeof(finish_read_s5k5e9yx_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
+#endif
+#ifdef CONFIG_S5K5E3YX
 	finish_read_s5k5e3yx_otp_reg, sizeof(finish_read_s5k5e3yx_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
-};
-
-static struct msm_camera_i2c_reg_array init_write_s5k5e3yx_otp_reg[] = {
-	{0x3b42, 0x68},
-	{0x3b41, 0x01},
-	{0x3b40, 0x00},
-	{0x3b45, 0x02},
-	{0x0A00, 0x04},
-	{0x0A00, 0x03},
-	{0x3b42, 0x00},
-	{0x0A02, 0x02},
-	{0x0A00, 0x03},
+#endif
 };
 
 struct msm_camera_i2c_reg_setting init_write_otp = {
+#ifdef CONFIG_S5K5E9YX
+	init_write_s5k5e9yx_otp_reg, sizeof(init_write_s5k5e9yx_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
+#endif
+#ifdef CONFIG_S5K5E3YX
 	init_write_s5k5e3yx_otp_reg, sizeof(init_write_s5k5e3yx_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
-};
-
-static struct msm_camera_i2c_reg_array finish_write_s5k5e3yx_otp_reg[] = {
-	{0x0A00, 0x04},
-	{0x0A00, 0x00},
-	{0x3b40, 0x01},
+#endif
 };
 
 struct msm_camera_i2c_reg_setting finish_write_otp = {
+#ifdef CONFIG_S5K5E9YX
+	finish_write_s5k5e9yx_otp_reg, sizeof(finish_write_s5k5e9yx_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
+#endif
+#ifdef CONFIG_S5K5E3YX
 	finish_write_s5k5e3yx_otp_reg, sizeof(finish_write_s5k5e3yx_otp_reg)/sizeof(struct msm_camera_i2c_reg_array), MSM_CAMERA_I2C_WORD_ADDR, MSM_CAMERA_I2C_BYTE_DATA, 10
+#endif
 };
-
-
 
 DEFINE_MSM_MUTEX(msm_eeprom_mutex);
 
@@ -2322,7 +2333,8 @@ static int eeprom_config_read_cal_data(struct msm_eeprom_ctrl_t *e_ctrl,
 		pr_err("%s : is NULL", __func__);
 		return -EFAULT;
 	}
-	CDBG("%s:%d: subdevid: %d",__func__,__LINE__,e_ctrl->subdev_id);
+	CDBG("%s:%d: OTP subdevid: %d mapdata %p", __func__, __LINE__, e_ctrl->subdev_id, e_ctrl->cal_data.mapdata);
+	CDBG("%s:%d: OTP addr: %x num_bytes 0x%d", __func__, __LINE__, cdata->cfg.read_data.addr, cdata->cfg.read_data.num_bytes);
 	rc = copy_to_user(cdata->cfg.read_data.dbuffer,
 		e_ctrl->cal_data.mapdata + cdata->cfg.read_data.addr,
 		cdata->cfg.read_data.num_bytes);
@@ -2794,23 +2806,23 @@ static int msm_eeprom_config(struct msm_eeprom_ctrl_t *e_ctrl,
 	CDBG("%s:%d: subdevid: %d, cfgtype: %d\n",__func__,__LINE__,e_ctrl->subdev_id, cdata->cfgtype);
 	switch (cdata->cfgtype) {
 	case CFG_EEPROM_GET_INFO:
-		CDBG("%s E CFG_EEPROM_GET_INFO\n", __func__);
+		CDBG("%s E CFG_OTP_GET_INFO\n", __func__);
 		cdata->is_supported = e_ctrl->is_supported;
 		memcpy(cdata->cfg.eeprom_name,
 			e_ctrl->eboard_info->eeprom_name,
 			sizeof(cdata->cfg.eeprom_name));
 		break;
 	case CFG_EEPROM_GET_CAL_DATA:
-		CDBG("%s E CFG_EEPROM_GET_CAL_DATA\n", __func__);
+		CDBG("%s E CFG_OTP_GET_CAL_DATA\n", __func__);
 		cdata->cfg.get_data.num_bytes =
 			e_ctrl->cal_data.num_data;
 		break;
 	case CFG_EEPROM_READ_CAL_DATA:
-		CDBG("%s E CFG_EEPROM_READ_CAL_DATA\n", __func__);
+		CDBG("%s E CFG_OTP_READ_CAL_DATA\n", __func__);
 		rc = eeprom_config_read_cal_data(e_ctrl, cdata);
 		break;
 	case CFG_EEPROM_READ_DATA:
-		CDBG("%s E CFG_EEPROM_READ_DATA\n", __func__);
+		CDBG("%s E CFG_OTP_READ_DATA\n", __func__);
 		rc = eeprom_config_read_data(e_ctrl, cdata);
 		break;
 	case CFG_EEPROM_READ_COMPRESSED_DATA:
@@ -2819,11 +2831,11 @@ static int msm_eeprom_config(struct msm_eeprom_ctrl_t *e_ctrl,
 		pr_err("%s : eeprom_config_read_compressed_data failed", __func__);
 		break;
 	case CFG_EEPROM_WRITE_DATA:
-		pr_warn("%s E CFG_EEPROM_WRITE_DATA\n", __func__);
+		pr_warn("%s E CFG_OTP_WRITE_DATA\n", __func__);
 		rc = eeprom_config_write_data(e_ctrl, cdata);
 		break;
 	case CFG_EEPROM_READ_DATA_FROM_HW:
-		CDBG("%s E CFG_EEPROM_READ_DATA_FROM_HW", __func__);
+		CDBG("%s E CFG_OTP_READ_DATA_FROM_HW", __func__);
 		e_ctrl->is_supported = 0x01;
 		pr_err ("kernel is_supported before : 0x%04X\n", e_ctrl->is_supported);
 		rc = msm_eeprom_read_eeprom_data(e_ctrl);
@@ -2835,26 +2847,26 @@ static int msm_eeprom_config(struct msm_eeprom_ctrl_t *e_ctrl,
 		}
 		break;
 	case CFG_EEPROM_GET_MM_INFO:
-		CDBG("%s E CFG_EEPROM_GET_MM_INFO\n", __func__);
+		CDBG("%s E CFG_OTP_GET_MM_INFO\n", __func__);
 		rc = msm_eeprom_get_cmm_data(e_ctrl, cdata);
 		break;
 
 	case CFG_EEPROM_ERASE:
-		pr_warn("%s E CFG_EEPROM_ERASE\n", __func__);
+		pr_warn("%s E CFG_OTP_ERASE\n", __func__);
 		rc = eeprom_config_erase(e_ctrl, cdata);
 		break;
 	case CFG_EEPROM_POWER_ON:
 		rc = msm_eeprom_power_up(e_ctrl, NULL);
 		if (rc < 0)
-			pr_err("%s : msm_eeprom_power_up failed", __func__);
+			pr_err("%s : msm_OTP_power_up failed", __func__);
 		break;
 	case CFG_EEPROM_POWER_OFF:
 		rc = msm_eeprom_power_down(e_ctrl, true);
 		if (rc < 0)
-			pr_err("%s : msm_eeprom_power_down failed", __func__);
+			pr_err("%s : msm_OTP_power_down failed", __func__);
 		break;
 	case CFG_EEPROM_GET_FW_VERSION_INFO:
-		CDBG("%s E CFG_EEPROM_GET_FW_VERSION_INFO\n", __func__);
+		CDBG("%s E CFG_OTP_GET_FW_VERSION_INFO\n", __func__);
 		rc = eeprom_config_read_fw_version(e_ctrl, cdata);
 		break;
 	default:
@@ -3125,10 +3137,18 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 	struct msm_eeprom_board_info *eb_info;
 	uint8_t *memptr = block->mapdata;
 	enum msm_camera_i2c_data_type data_type = MSM_CAMERA_I2C_BYTE_DATA;
-	uint16_t OTP_Bank=0, OTP_Data=0;
+	uint16_t OTP_Bank=0;
+#ifdef CONFIG_S5K5E3YX
+	uint16_t OTP_Data=0;
+#endif
 	uint16_t start_addr,end_addr;
 	uint8_t page;
 	int i, j;
+#ifdef CONFIG_S5K5E9YX
+	int read_bytes = 0;
+	int total_bytes_to_read = 0;
+	int next_page_count = 0;
+#endif
 
 	if (!e_ctrl) {
 		pr_err("%s e_ctrl is NULL", __func__);
@@ -3138,6 +3158,13 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 	eb_info = e_ctrl->eboard_info;
 
 	rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write_table(
+		&(e_ctrl->i2c_client), &load_otp_setfile);
+	if (rc < 0) {
+		pr_err("%s:(%d) load_otp_setfile failed\n", __func__, __LINE__);
+		return rc;
+	}
+
+	rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write_table(
 		&(e_ctrl->i2c_client), &init_read_otp);
 	if (rc < 0) {
 		pr_err("%s:(%d) init_read_otp failed\n", __func__, __LINE__);
@@ -3145,16 +3172,38 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 	}
 
 	rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_read(
+#ifdef CONFIG_S5K5E9YX
+		&(e_ctrl->i2c_client), S5K5E9_OTP_PAGE_START_REGISTER,
+#else
 		&(e_ctrl->i2c_client), START_ADDR_FOR_S5K5E3_OTP,
+#endif
 		&OTP_Bank, data_type);
 	if (rc < 0) {
 		pr_err("%s:(%d) read failed\n", __func__, __LINE__);
 		return rc;
 	}
 	memptr[0] = OTP_Bank;
-	pr_info("%s: read OTP_Bank: %d\n", __func__, OTP_Bank);
+	pr_info("%s:%d read OTP_Bank: %d\n", __func__, __LINE__, OTP_Bank);
 
 	switch(OTP_Bank) {
+		// Refer to OTP document
+#ifdef CONFIG_S5K5E9YX
+		case 0:
+		case 1:
+			page = 17;
+			break;
+		case 3:
+			page = 22;
+			break;
+		case 7:
+			page = 27;
+			break;
+		case 0xF:
+			page = 32;
+		case 0x1F:
+			page = 37;
+			break;
+#else
 		case 0:
 		case 1:
 			page = 2;
@@ -3168,18 +3217,29 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 		case 0xF:
 			page = 5;
 			break;
+#endif
 		default:
 			pr_err("%s: Bank error : Bank(%d)\n", __func__, OTP_Bank);
 			return -EINVAL;
 	}
+
+	pr_info("%s:%d read page: %d\n", __func__, __LINE__, page);
+
+#ifdef CONFIG_S5K5E9YX
 	init_read_otp.reg_setting[1].reg_data = page;
 	init_write_otp.reg_setting[7].reg_data = page;
+#endif
+#ifdef CONFIG_S5K5E3YX
+	init_read_otp.reg_setting[1].reg_data = page;
+	init_write_otp.reg_setting[7].reg_data = page;
+#endif
 	block->mapdata[0] = page;
 
 	for (j = 0; j < block->num_map; j++) {
 		if(emap[j].mem.data_t == 0) continue;
 
-		memptr = block->mapdata + emap[j].mem.addr;
+		memptr = block->mapdata + emap[j].mem.addr; // j=0, jump 12(0x0C) / j=1, jump 316(0x13C)
+
 		pr_err("%s: %d addr = 0x%X, size = %d\n", __func__, __LINE__, emap[j].mem.addr, emap[j].mem.valid_size);
 
 		if (emap[j].saddr.addr) {
@@ -3200,8 +3260,8 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 			}
 
 			rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(
-				&(e_ctrl->i2c_client), 0x0A02,
-				page, data_type);
+				&(e_ctrl->i2c_client), 0x0A02, page,
+				data_type);
 			if (rc < 0) {
 				pr_err("%s:(%d) write page failed\n", __func__, __LINE__);
 				return rc;
@@ -3215,8 +3275,91 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 				return rc;
 			}
 
+#ifdef CONFIG_S5K5E9YX
+			rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_poll(
+				&(e_ctrl->i2c_client), S5K5E9_OTP_ERROR_FLAG_REGISTER,
+				0x01, MSM_CAMERA_I2C_BYTE_DATA, 1);
+			if (rc < 0) {
+				pr_err("%s:(%d) pool read byte failed\n", __func__, __LINE__);
+				return rc;
+			}
+
+			start_addr = S5K5E9_OTP_PAGE_START_REGISTER + emap[j].mem.addr; //j=0, 0xA10
+
+			while(start_addr > S5K5E9_OTP_PAGE_END_REGISTER) {//	j=1, start_addr will be 0xA40
+				start_addr -= S5K5E9_OTP_PAGE_SIZE;
+			}
+#endif
+#ifdef CONFIG_S5K5E3YX
 			start_addr = START_ADDR_FOR_S5K5E3_OTP + emap[j].mem.addr;
+#endif
 			end_addr = start_addr + emap[j].mem.valid_size;
+
+			pr_err("%s: %d page %d start_addr = 0x%X\n",
+				__func__, __LINE__, page, start_addr);
+
+#ifdef CONFIG_S5K5E9YX
+			total_bytes_to_read = emap[j].mem.valid_size;
+			read_bytes = S5K5E9_OTP_PAGE_SIZE - emap[j].mem.addr; //j=0, 52
+
+			while(read_bytes < 0) {  //  j=1, read_bytes will be 4
+				read_bytes += S5K5E9_OTP_PAGE_SIZE;
+			}
+
+			while (total_bytes_to_read > 0) {
+				pr_err("%s: %d page_cnt [%d] read_bytes : %d \n",
+				__func__, __LINE__, next_page_count, read_bytes);
+
+				rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_read_seq(
+					&(e_ctrl->i2c_client), start_addr,
+					memptr, read_bytes);
+				if (rc < 0) {
+					pr_err("%s:(%d) read failed\n", __func__, __LINE__);
+					return rc;
+				}
+
+				start_addr = S5K5E9_OTP_PAGE_START_REGISTER;
+
+				total_bytes_to_read -= read_bytes;
+				memptr += read_bytes;
+
+				if(total_bytes_to_read < S5K5E9_OTP_PAGE_SIZE) {
+					read_bytes = total_bytes_to_read;
+				} else {
+					read_bytes = S5K5E9_OTP_PAGE_SIZE;
+				}
+
+				if (total_bytes_to_read > 0) {
+					rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write_table(
+							&(e_ctrl->i2c_client), &finish_read_otp);
+					if (rc < 0) {
+						pr_err("%s:(%d) finish_read_otp failed\n", __func__, __LINE__);
+						return rc;
+					}
+
+					next_page_count++;
+
+					rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+						&(e_ctrl->i2c_client), 0x0A02, page + next_page_count,
+						data_type);
+					if (rc < 0) {
+						pr_err("%s:(%d) write page failed\n", __func__, __LINE__);
+						return rc;
+					}
+
+					rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+						&(e_ctrl->i2c_client), 0x0A00,
+						0x01, data_type);
+					if (rc < 0) {
+						pr_err("%s:(%d) set read mode failed\n", __func__, __LINE__);
+						return rc;
+					}
+				}
+			}
+
+			page += next_page_count;
+
+#else
 			for (i=start_addr; i<end_addr; i++) {
 				rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_read(
 					&(e_ctrl->i2c_client), i,
@@ -3227,6 +3370,7 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 				}
 				memptr[i-start_addr] = OTP_Data;
 			}
+#endif
 
 			rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write_table(
 					&(e_ctrl->i2c_client), &finish_read_otp);
@@ -3236,13 +3380,26 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 			}
 		}
 	}
+
+#ifdef CONFIG_S5K5E9YX
+	memptr = block->mapdata;
+#if defined(CONFIG_GET_FRONT_MODULE_ID_OTP)
+	memcpy(front_module_id, memptr + S5K5E9_OTP_MODULE_ID_OFFSET, S5K5E9_OTP_MODULE_ID_SIZE);
+	front_module_id[S5K5E9_OTP_MODULE_ID_SIZE] = '\0';
+#endif
+#if defined(CONFIG_GET_FRONT_SENSOR_ID)
+	memcpy(front_sensor_id, memptr + S5K5E9_OTP_SENSOR_ID_OFFSET, S5K5E9_OTP_SENSOR_ID_SIZE);
+	front_sensor_id[S5K5E9_OTP_SENSOR_ID_SIZE] = '\0';
+#endif
+#endif
+
 #ifdef MSM_EEPROM_DEBUG
 	memptr = block->mapdata;
-	for(i=0; i < block->num_data; i++)
+	for(i=0; i < block->num_data; i+=16)
 	{
-		pr_err("memptr[%02X]: %02X", i,memptr[i]);
-		if(i!=0&&i%7==0)
-			pr_err("\n");
+		pr_err("memptr[%03X]: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", i,
+			memptr[i],memptr[i+1],memptr[i+2],memptr[i+3],memptr[i+4],memptr[i+5],memptr[i+6],memptr[i+7],
+			memptr[i+8],memptr[i+9],memptr[i+10],memptr[i+11],memptr[i+12],memptr[i+13],memptr[i+14],memptr[i+15]);
 	}
 #endif
 	return rc;
@@ -4137,7 +4294,7 @@ static int msm_eeprom_spi_remove(struct spi_device *sdev)
 	return 0;
 }
 
-static int msm_eeprom_platform_probe(struct platform_device *pdev)
+static int msm_otp_platform_probe(struct platform_device *pdev)
 {
 	int rc = 0;
 	int retry_count = 0;
@@ -4151,7 +4308,7 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 	struct device_node *of_node = pdev->dev.of_node;
 	struct msm_camera_power_ctrl_t *power_info = NULL;
 
-	CDBG("%s otp E\n", __func__);
+	CDBG("%s:%d otp E\n", __func__, __LINE__);
 
 	e_ctrl = kzalloc(sizeof(*e_ctrl), GFP_KERNEL);
 	if (!e_ctrl) {
@@ -4230,6 +4387,7 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 	cci_client->sid = eb_info->i2c_slaveaddr >> 1;
 	cci_client->retries = 3;
 	cci_client->id_map = 0;
+	cci_client->i2c_freq_mode = I2C_FAST_MODE;
 
 	rc = of_property_read_string(of_node, "qcom,eeprom-name",
 		&eb_info->eeprom_name);
@@ -4358,7 +4516,7 @@ cciclient_free:
 	return rc;
 }
 
-static int msm_eeprom_platform_remove(struct platform_device *pdev)
+static int msm_otp_platform_remove(struct platform_device *pdev)
 {
 	struct v4l2_subdev *sd = platform_get_drvdata(pdev);
 	struct msm_eeprom_ctrl_t  *e_ctrl;
@@ -4384,20 +4542,21 @@ static int msm_eeprom_platform_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static const struct of_device_id msm_eeprom_dt_match[] = {
+static const struct of_device_id msm_otp_dt_match[] = {
 	{ .compatible = "qcom,otp" },
 	{ }
 };
 
-MODULE_DEVICE_TABLE(of, msm_eeprom_dt_match);
+MODULE_DEVICE_TABLE(of, msm_otp_dt_match);
 
-static struct platform_driver msm_eeprom_platform_driver = {
+static struct platform_driver msm_otp_platform_driver = {
 	.driver = {
 		.name = "qcom,otp",
 		.owner = THIS_MODULE,
-		.of_match_table = msm_eeprom_dt_match,
+		.of_match_table = msm_otp_dt_match,
 	},
-	.remove = msm_eeprom_platform_remove,
+	.probe = msm_otp_platform_probe,
+	.remove = msm_otp_platform_remove,
 };
 
 static const struct of_device_id msm_eeprom_i2c_dt_match[] = {
@@ -4427,7 +4586,7 @@ static struct spi_driver msm_eeprom_spi_driver = {
 	.driver = {
 		.name = "qcom_otp",
 		.owner = THIS_MODULE,
-		.of_match_table = msm_eeprom_dt_match,
+		.of_match_table = msm_otp_dt_match,
 	},
 	.probe = msm_eeprom_spi_probe,
 	.remove = msm_eeprom_spi_remove,
@@ -4436,9 +4595,8 @@ static struct spi_driver msm_eeprom_spi_driver = {
 static int __init msm_eeprom_init_module(void)
 {
 	int rc = 0;
-	CDBG("%s otp E\n", __func__);
-	rc = platform_driver_probe(&msm_eeprom_platform_driver,
-		msm_eeprom_platform_probe);
+	CDBG("%s:%d otp E\n", __func__, __LINE__);
+	rc = platform_driver_register(&msm_otp_platform_driver);
 	CDBG("%s:%d otp platform rc %d\n", __func__, __LINE__, rc);
 	rc = i2c_add_driver(&msm_eeprom_i2c_driver);
 	if (rc < 0)
@@ -4451,7 +4609,7 @@ static int __init msm_eeprom_init_module(void)
 
 static void __exit msm_eeprom_exit_module(void)
 {
-	platform_driver_unregister(&msm_eeprom_platform_driver);
+	platform_driver_unregister(&msm_otp_platform_driver);
 	spi_unregister_driver(&msm_eeprom_spi_driver);
 	i2c_del_driver(&msm_eeprom_i2c_driver);
 }

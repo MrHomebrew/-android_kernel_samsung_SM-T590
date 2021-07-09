@@ -129,16 +129,6 @@ static int muic_handle_dock_notification(struct notifier_block *nb,
 		} else if (action == MUIC_NOTIFY_CMD_DETACH)
 			return muic_dock_detach_notify();
 		break;
-#ifdef CONFIG_UART3	//XO Shutdown
-	case ATTACHED_DEV_JIG_UART_OFF_MUIC:
-	case ATTACHED_DEV_JIG_UART_OFF_VB_MUIC:
-		/* write value at "sys/class/switch/uart3/state" */
-		if (action == MUIC_NOTIFY_CMD_ATTACH)
-			switch_set_state(&switch_uart3, action);
-		else if(action == MUIC_NOTIFY_CMD_DETACH)
-			switch_set_state(&switch_uart3, action);
-		break;
-#endif
 	case ATTACHED_DEV_SMARTDOCK_MUIC:
 	case ATTACHED_DEV_SMARTDOCK_VB_MUIC:
 	case ATTACHED_DEV_SMARTDOCK_TA_MUIC:
@@ -269,13 +259,13 @@ int get_switch_sel(void)
  *   0x31 : Disabled
  *   0x30 : Enabled
  */
-static int afc_mode;
+static int afc_mode = 0;
 static int __init set_afc_mode(char *str)
 {
 	int mode;
 
 	get_option(&str, &mode);
-	afc_mode = (mode & 0x0000FF00) >> 8;
+	afc_mode = mode & 0x000000FF;
 	pr_info("%s: afc_mode is 0x%02x\n", __func__, afc_mode);
 
 	return 0;

@@ -73,7 +73,12 @@ enum sec_battery_usb_conf {
 
 enum sec_battery_rp_curr {
 	RP_CURRENT_RP1 = 500,
+/* set 1400mA due to peak current to pass the PD authentication */
+#if defined(CONFIG_SEC_GTA2XLLTE_PROJECT)
+	RP_CURRENT_RP2 = 1400,
+#else
 	RP_CURRENT_RP2 = 1500,
+#endif
 	RP_CURRENT_RP3 = 3000,
 };
 
@@ -361,6 +366,8 @@ enum sec_battery_full_charged {
 enum sec_battery_inbat_fgsrc_switching {
 	SEC_BAT_INBAT_FGSRC_SWITCHING_ON = 0,
 	SEC_BAT_INBAT_FGSRC_SWITCHING_OFF,
+	SEC_BAT_FGSRC_SWITCHING_ON,
+	SEC_BAT_FGSRC_SWITCHING_OFF,	
 };
 
 #define sec_battery_full_charged_t \
@@ -801,6 +808,7 @@ struct sec_battery_platform_data {
 	int mix_high_temp;
 	int mix_high_chg_temp;
 	int mix_high_temp_recovery;
+	unsigned int support_pogo;
 
 	/* If these is NOT full check type or NONE full check type,
 	 * it is skipped
@@ -830,6 +838,8 @@ struct sec_battery_platform_data {
 
 	/* water proof model */
 	bool water_proof;
+	/* moisture detect function support for non-water proof USB type-b models */
+	bool detect_moisture;
 
 	/* fuel gauge */
 	char *fuelgauge_name;
@@ -909,8 +919,8 @@ struct sec_battery_platform_data {
 	bool fake_capacity;
 	bool fake_temperature;
 
-#if defined(CONFIG_BATTERY_CISD)
 	unsigned int battery_full_capacity;
+#if defined(CONFIG_BATTERY_CISD)	
 	unsigned int cisd_cap_high_thr;
 	unsigned int cisd_cap_low_thr;
 	unsigned int cisd_cap_limit;

@@ -508,7 +508,8 @@ static int sec_multi_chg_set_property(struct power_supply *psy,
 		} else if (charger->sub_is_charging) {
 			psy_do_property(charger->pdata->sub_charger_name, set,
 				psp, value);
-		}
+		} else
+			sec_multi_chg_check_enable(charger);
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 		pr_info("%s: POWER_SUPPLY_PROP_ONLINE(%d))\n",__func__, val->intval);

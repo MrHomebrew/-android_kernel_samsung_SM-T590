@@ -9,7 +9,8 @@ subdir-$(CONFIG_SECURITY_TOMOYO)        += tomoyo
 subdir-$(CONFIG_SECURITY_APPARMOR)	+= apparmor
 subdir-$(CONFIG_SECURITY_YAMA)		+= yama
 subdir-$(CONFIG_ARCH_MSM)		+= pfe
-subdir-$(CONFIG_SECURITY_DEFEX)		+= defex_lsm
+subdir-$(CONFIG_SECURITY_DEFEX)		+= samsung/defex_lsm
+subdir-$(CONFIG_SECURITY_DSMS)		+= samsung/dsms
 
 # always enable default capabilities
 obj-y					+= commoncap.o
@@ -27,11 +28,20 @@ obj-$(CONFIG_SECURITY_APPARMOR)		+= apparmor/
 obj-$(CONFIG_SECURITY_YAMA)		+= yama/
 obj-$(CONFIG_ARCH_MSM)		        += pfe/
 obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
-obj-$(CONFIG_SECURITY_DEFEX)		+= defex_lsm/built-in.o
+obj-$(CONFIG_SECURITY_DEFEX)		+= samsung/defex_lsm/built-in.o
+obj-$(CONFIG_SECURITY_DSMS)		+= samsung/dsms/
 
 # Object integrity file lists
 subdir-$(CONFIG_INTEGRITY)		+= integrity
 obj-$(CONFIG_INTEGRITY)			+= integrity/
+
+# PROCA module
+subdir-$(CONFIG_PROCA)			+= proca
+obj-$(CONFIG_PROCA)			+= proca/
+
+# Kbuild should always enter proca/gaf because gaf should be always built
+subdir-y += proca/gaf
+obj-y    += proca/gaf/
 
 # TIMA uevent
 obj-$(CONFIG_TIMA_UEVENT)     += tima_uevent/
@@ -45,3 +55,7 @@ obj-$(CONFIG_TZ_ICCC)     += tz_iccc/
 
 #KNOX TEST
 obj-$(CONFIG_KNOX_TEST)     += knox_test/
+
+# FIVE
+subdir-$(CONFIG_FIVE)			+= samsung/five
+obj-$(CONFIG_FIVE)			+= samsung/five/

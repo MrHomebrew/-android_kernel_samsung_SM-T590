@@ -530,6 +530,7 @@ static void dsi_update_mdnie_data(void)
 	mdnie_data.DSI0_HBM_CE_MDNIE = DSI0_HBM_CE_MDNIE;
 	mdnie_data.DSI0_HBM_CE_TEXT_MDNIE = DSI0_HBM_CE_TEXT_MDNIE;
 	mdnie_data.DSI0_RGB_SENSOR_MDNIE = DSI0_RGB_SENSOR_MDNIE;
+	mdnie_data.DSI0_RGB_SENSOR_MDNIE_SCR = DSI0_RGB_SENSOR_MDNIE_2;
 	mdnie_data.DSI0_CURTAIN = DSI0_CURTAIN;
 
 	mdnie_data.DSI0_UI_DYNAMIC_MDNIE = DSI0_UI_DYNAMIC_MDNIE;
@@ -585,7 +586,7 @@ static void dsi_update_mdnie_data(void)
 	mdnie_data.dsi0_rgb_sensor_mdnie_2_size = DSI0_RGB_SENSOR_MDNIE_2_SIZE;
 	mdnie_data.dsi0_scr_step_index = MDNIE_STEP2_INDEX;
 	mdnie_data.DSI0_NIGHT_MODE_MDNIE = DSI0_NIGHT_MODE_MDNIE;
-	mdnie_data.DSI0_NIGHT_MODE_MDNIE_1 = DSI0_NIGHT_MODE_MDNIE_2;
+	mdnie_data.DSI0_NIGHT_MODE_MDNIE_SCR = DSI0_NIGHT_MODE_MDNIE_2;
 	mdnie_data.dsi0_night_mode_table = night_mode_data;
 	mdnie_data.dsi0_max_night_mode_index = 11;
 	
@@ -637,7 +638,7 @@ static void mdss_panel_init(struct samsung_display_driver_data *vdd)
 	vdd->panel_func.samsung_brightness_gamma = mdss_gamma;
 
 	/* default brightness */
-	vdd->bl_level = 255;
+	vdd->bl_level = LCD_DEFAULT_BL_LEVEL;
 
 	/* ACL default 15% ON, */
 	vdd->acl_status = 1;
@@ -650,6 +651,8 @@ static void mdss_panel_init(struct samsung_display_driver_data *vdd)
 	vdd->mdnie_tune_size[1] = 113;
 	vdd->mdnie_tune_size[2] = 0;
 	dsi_update_mdnie_data();
+	/* Initialize the panel before first commit on bootup */
+	vdd->init_panel_before_commit = true;
 }
 
 static int __init samsung_panel_init(void)

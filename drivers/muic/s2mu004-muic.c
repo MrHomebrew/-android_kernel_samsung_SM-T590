@@ -141,9 +141,7 @@ static const char *dev_to_str(muic_attached_dev_t n)
 		ENUM_STR(ATTACHED_DEV_UNSUPPORTED_ID_VB_MUIC);
 		ENUM_STR(ATTACHED_DEV_TIMEOUT_OPEN_MUIC);
 		ENUM_STR(ATTACHED_DEV_WIRELESS_PAD_MUIC);
-#if IS_ENABLED(CONFIG_SEC_FACTORY)
 		ENUM_STR(ATTACHED_DEV_CARKIT_MUIC);
-#endif
 		ENUM_STR(ATTACHED_DEV_POWERPACK_MUIC);
 		ENUM_STR(ATTACHED_DEV_UNDEFINED_RANGE_MUIC);
 		ENUM_STR(ATTACHED_DEV_HICCUP_MUIC);
@@ -165,6 +163,7 @@ static const char *dev_to_str(muic_attached_dev_t n)
 }
 
 extern unsigned int lpcharge;
+extern int factory_mode;
 static struct s2mu004_muic_data *static_data;
 int s2mu004_muic_check_afc_ready(struct s2mu004_muic_data *muic_data);
 #if defined(CONFIG_CCIC_S2MU004)
@@ -1270,15 +1269,6 @@ static int s2mu004_muic_reg_init(struct s2mu004_muic_data *muic_data)
 	vbvolt &= DEV_TYPE_APPLE_VBUS_WAKEUP;
 #endif
 
-#if !IS_ENABLED(CONFIG_SEC_FACTORY)
-	/* manual reset disable 0x71[3]=0 */
-	s2mu004_i2c_update_bit(i2c, 
-		S2MU004_REG_MRSTB, EN_MRST_MASK, EN_MRST_SHIFT, 0);
-
-	/* VIO reset MUIC Disable(Hidden register) 0x8B[3]=0 */
-	s2mu004_i2c_update_bit(i2c, 0x8B, 0x8, 3, 0);
-#endif
-
 	read_val[READ_VAL_DEVICE_TYPE1] = s2mu004_i2c_read_byte(i2c, S2MU004_REG_MUIC_DEVICE_TYPE1);
 	read_val[READ_VAL_DEVICE_TYPE2] = s2mu004_i2c_read_byte(i2c, S2MU004_REG_MUIC_DEVICE_TYPE2);
 	read_val[READ_VAL_DEVICE_TYPE3] = s2mu004_i2c_read_byte(i2c, S2MU004_REG_MUIC_DEVICE_TYPE3);
@@ -2175,6 +2165,12 @@ static void s2mu004_muic_detect_dev(struct s2mu004_muic_data *muic_data)
 	if (ret == S2MU004_DETECT_SKIP)
 		return;
 
+	if (muic_if->powerrole_state)
+	{
+		pr_info("%s Power Role state, just return!\n", __func__);
+		return;
+	}
+
 #if defined(CONFIG_CCIC_NOTIFIER)
 	if (!(muic_if->opmode & OPMODE_CCIC))
 		s2mu004_muic_detect_jig_dev_type(muic_data, read_val, vbvolt, &intr, &new_dev);
@@ -2830,6 +2826,10 @@ static int s2mu004_muic_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&muic_data->dcd_recheck, s2mu004_muic_dcd_recheck);
 	s2mu004_muic_irq_thread(-1, muic_data);
 
+#if defined(CONFIG_USB_EXTERNAL_NOTIFY)
+	muic_register_usb_notifier(muic_if);
+#endif
+
 #if defined(CONFIG_MUIC_KEYBOARD)
 	/* Enable rid detection */
         if(!lpcharge)
@@ -2908,10 +2908,6 @@ static void s2mu004_muic_shutdown(struct platform_device *pdev)
 	s2mu004_hv_muic_remove(muic_data);
 #endif
 
-	ret = s2mu004_muic_com_to_open(muic_data);
-	if (ret < 0)
-		pr_err("fail to open mansw\n");
-
 	/* set auto sw mode before shutdown to make sure device goes into */
 	/* LPM charging when TA or USB is connected during off state */
 	pr_info("muic auto detection enable\n");
@@ -2944,6 +2940,17 @@ static void s2mu004_muic_shutdown(struct platform_device *pdev)
 	/* switch manual mode 0xC7[2]=0 */
 	s2mu004_i2c_update_bit(muic_data->i2c, 
 		S2MU004_REG_MUIC_CTRL1, CTRL_MANUAL_SW_MASK, CTRL_MANUAL_SW_SHIFT, 0);
+
+	ret = s2mu004_muic_com_to_open(muic_data);
+	if (ret < 0)
+		pr_err("fail to open mansw\n");
+
+	/* Pwr Save Mode On 0xC6[6]=1 */
+	s2mu004_i2c_update_bit(muic_data->i2c, 0xC6, 0x40, 6, 1);
+
+	/* 0x10[6]=1 CHG Reset if it isn't factory mode*/
+	if (!factory_mode)
+		s2mu004_i2c_update_bit(muic_data->i2c, 0x10, 0x40, 6, 1);
 #endif
 }
 

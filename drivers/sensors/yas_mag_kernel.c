@@ -405,7 +405,39 @@ static ssize_t yas_static_matrix_show(struct device *dev,
 	return ret;
 }
 
+static ssize_t yas_position_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int16_t ret;
+	struct yas_state *data = dev_get_drvdata(dev);
+	
+	ret = snprintf(buf, PAGE_SIZE, "%d\n",
+		data->position);
 
+	return ret;
+}
+
+static ssize_t yas_position_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int position, ret;
+	struct yas_state *data = dev_get_drvdata(dev);
+
+	if (sscanf(buf, "%d", &position)!= 1) {
+		SENSOR_ERR("invalid value\n");
+		return size;
+	}
+
+	ret = data->mag.set_position(position);
+	
+	if (ret < 0) {
+		SENSOR_ERR("position writing failed %d\n", ret);
+		return ret;
+	}
+	
+	data->position = position;
+	return size;
+}
 
 #if defined(CONFIG_SENSORS_YAS_RESET_DEFENCE_CODE)
 static ssize_t yas_power_reset_show(struct device *dev,
@@ -466,6 +498,8 @@ static DEVICE_ATTR(name, 0444, yas_name_show, NULL);
 static DEVICE_ATTR(selftest, 0444, yas_self_test_show, NULL);
 static DEVICE_ATTR(raw_data, 0664,
 	yas_self_test_noise_show, yas_self_test_noise_store);
+static DEVICE_ATTR(position, 0664,
+	yas_position_show, yas_position_store);
 static DEVICE_ATTR(dhr_sensor_info, 0444, yas_dhr_sensor_info_show, NULL);
 static DEVICE_ATTR(matrix, 0664,
 	yas_static_matrix_show, yas_static_matrix_store);
@@ -475,6 +509,7 @@ static struct device_attribute *mag_sensor_attrs[] = {
 	&dev_attr_name,
 	&dev_attr_selftest,
 	&dev_attr_raw_data,
+	&dev_attr_position,
 	&dev_attr_dhr_sensor_info,
 	&dev_attr_matrix,
 #if defined(CONFIG_SENSORS_YAS_RESET_DEFENCE_CODE)

@@ -2384,9 +2384,11 @@ int lis2ds_common_probe(struct lis2ds_data *cdata, int irq, u16 bustype)
 			SENSOR_ERR("failed to read Who-Am-I register.\n");
 
 		if (wai != LIS2DS_WHO_AM_I_DEF)
-			SENSOR_ERR("Who-Am-I value not valid.\n");
+			SENSOR_ERR("Who-Am-I value = 0x%x not valid.\n", wai);
 		else
 			break;
+		
+		msleep(20); //20msec delay
 	}
 
 	if (retry < 0)

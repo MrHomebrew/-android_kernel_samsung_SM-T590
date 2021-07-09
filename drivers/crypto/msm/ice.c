@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2014-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1537,6 +1537,7 @@ struct platform_device *qcom_ice_get_pdevice(struct device_node *node)
 			break;
 		}
 	}
+
 	if(ice_pdev)
 		pr_info("%s: matching platform device %pK\n", __func__, ice_pdev);
 out:
@@ -1666,7 +1667,7 @@ int qcom_ice_setup_ice_hw(const char *storage_type, int enable)
 	struct ice_device *ice_dev = NULL;
 
 	ice_dev = get_ice_device_from_storage_type(storage_type);
-	if (!ice_dev)
+	if (!ice_dev || (ice_dev->is_ice_enabled == false))
 		return ret;
 
 	if (enable)

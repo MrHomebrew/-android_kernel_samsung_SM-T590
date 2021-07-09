@@ -4306,11 +4306,11 @@ enum tfa98xx_error tfa_run_startup(tfa98xx_handle_t handle, int profile)
 		handles_local[handle].first_after_boot = 0;
 #endif
 		return err;
-	} else {
+	}
+
 		pr_debug("%s: power up and check status when DSP is active\n",
 			__func__);
 		err = tfa_cf_powerup(handle);
-	}
 #else
 	err = tfa98xx_powerdown(handle, 0);
 #endif

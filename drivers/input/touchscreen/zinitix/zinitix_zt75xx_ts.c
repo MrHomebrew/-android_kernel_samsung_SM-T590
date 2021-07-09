@@ -3226,6 +3226,13 @@ static void fw_update(void *device_data)
 		break;
 
 	case UMS:
+#ifdef CONFIG_SAMSUNG_PRODUCT_SHIP
+		sec->cmd_state = SEC_CMD_STATUS_OK;
+		snprintf(result, sizeof(result), "%s", "OK");
+		sec_cmd_set_cmd_result(sec, result, strnlen(result, sizeof(result)));
+		return;
+#endif
+
 		old_fs = get_fs();
 		set_fs(get_ds());
 
@@ -3369,6 +3376,12 @@ static void get_fw_ver_ic(void *device_data)
 	int ret;
 
 	sec_cmd_set_default_result(sec);
+	
+#if ESD_TIMER_INTERVAL
+	esd_timer_stop(misc_info);
+	write_reg(client, BT532_PERIODICAL_INTERRUPT_INTERVAL, 0);
+	write_cmd(client, BT532_CLEAR_INT_STATUS_CMD);
+#endif
 
 	down(&info->work_lock);
 	//wakeup cmd
@@ -3383,6 +3396,12 @@ static void get_fw_ver_ic(void *device_data)
 		input_info(true, &client->dev, "%s: version check error\n", __func__);
 		return;
 	}
+	
+#if ESD_TIMER_INTERVAL
+	esd_timer_start(CHECK_ESD_TIMER, misc_info);
+	write_reg(client, BT532_PERIODICAL_INTERRUPT_INTERVAL,
+		SCAN_RATE_HZ * ESD_TIMER_INTERVAL);
+#endif
 
 	fw_version = info->cap_info.fw_version;
 	fw_minor_version = info->cap_info.fw_minor_version;
@@ -4764,6 +4783,79 @@ static void get_txshort(void *device_data)
 	input_info(true,&client->dev, "%s: %s(%d)\n", __func__, sec->cmd_result,
 		(int)strnlen(sec->cmd_result, sizeof(sec->cmd_result)));
 
+	return;
+}
+
+static void run_trxshort_read(void *device_data)
+{
+	struct sec_cmd_data *sec = (struct sec_cmd_data *)device_data;
+	struct bt532_ts_info *info = container_of(sec, struct bt532_ts_info, sec);
+	struct i2c_client *client = info->client;
+	struct tsp_raw_data *raw_data = info->raw_data;
+	char buff[SEC_CMD_STR_LEN] = { 0 };
+	int x_num = info->cap_info.x_node_num;
+	int y_num = info->cap_info.y_node_num;
+	int i, j;
+	u16 rx_max = 0x0000, tx_max = 0x0000;
+	u16 short_pass = 0x0001, short_fail = 0x0000;
+
+#if ESD_TIMER_INTERVAL
+	esd_timer_stop(misc_info);
+	write_reg(client, BT532_PERIODICAL_INTERRUPT_INTERVAL, 0);
+	write_cmd(client, BT532_CLEAR_INT_STATUS_CMD);
+#endif
+	sec_cmd_set_default_result(sec);
+
+	ts_set_touchmode(TOUCH_TXSHORT_MODE);
+	get_raw_data(info, (u8 *)raw_data->txshort_data, 2);
+	ts_set_touchmode(TOUCH_POINT_MODE);
+
+	input_info(true,&client->dev, "TRX SHORT start\n");
+
+	for (i = 0; i < x_num; i++)
+	{
+		for (j = 0; j < y_num; j++)
+		{
+			input_info(true,&client->dev, "%d\t", raw_data->txshort_data[i*y_num + j]);
+		}
+		input_info(true,&client->dev, "\n", raw_data->txshort_data[i*y_num + j]);
+	}
+
+	input_info(true,&client->dev, "RX SHORT :\n");
+	for (i = 0; i < y_num; i++)
+	{
+		input_info(true,&client->dev, "%d ", raw_data->txshort_data[i]);
+		if(raw_data->txshort_data[i]>rx_max)
+			rx_max = raw_data->txshort_data[i];
+	}
+	input_info(true,&client->dev, "\n");
+
+	input_info(true,&client->dev, "TX SHORT :\n");
+	for (i = y_num; i < x_num+y_num; i++)
+	{
+		input_info(true,&client->dev, "%d ", raw_data->txshort_data[i]);
+		if(raw_data->txshort_data[i]>tx_max)
+			tx_max = raw_data->txshort_data[i];
+	}
+	input_info(true,&client->dev, "\n");
+
+	input_info(true, &client->dev, "TRX SHORT end\n");
+
+	if(rx_max == 100 && tx_max == 200)
+		snprintf(buff, sizeof(buff), "%d", short_pass);
+	else 
+		snprintf(buff, sizeof(buff), "%d", short_fail);
+
+	sec_cmd_set_cmd_result(sec, buff, strnlen(buff, sizeof(buff)));
+	if (sec->cmd_all_factory_state == SEC_CMD_STATUS_RUNNING)
+		sec_cmd_set_cmd_result_all(sec, buff, strnlen(buff, sizeof(buff)), "SHORT_TEST");
+	sec->cmd_state = SEC_CMD_STATUS_OK;
+
+#if ESD_TIMER_INTERVAL
+	esd_timer_start(CHECK_ESD_TIMER, misc_info);
+	write_reg(client, BT532_PERIODICAL_INTERRUPT_INTERVAL,
+		SCAN_RATE_HZ * ESD_TIMER_INTERVAL);
+#endif
 	return;
 }
 
@@ -6956,6 +7048,8 @@ static void factory_cmd_result_all(void *device_data)
 		run_mis_cal_read(sec);
 	}
 
+	run_trxshort_read(sec);
+	
 	sec->cmd_all_factory_state = SEC_CMD_STATUS_OK;
 
 out:
@@ -8201,9 +8295,9 @@ static int bt532_ts_probe(struct i2c_client *client,
 	set_bit(EV_ABS, info->input_dev->evbit);
 	set_bit(BTN_TOUCH, info->input_dev->keybit);
 	set_bit(INPUT_PROP_DIRECT, info->input_dev->propbit);
-	set_bit(EV_LED, info->input_dev->evbit);
-	set_bit(LED_MISC, info->input_dev->ledbit);
 	if(pdata->support_touchkey){
+		set_bit(EV_LED, info->input_dev->evbit);
+		set_bit(LED_MISC, info->input_dev->ledbit);
 		for (i = 0; i < MAX_SUPPORTED_BUTTON_NUM; i++)
 			set_bit(BUTTON_MAPPING_KEY[i], info->input_dev->keybit);
 	}

@@ -9,7 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 #define SENSOR_DRIVER_I2C "i2c_camera"
 /* Header file declaration */
 #include "msm_sensor.h"
@@ -1485,12 +1484,12 @@ static const struct i2c_device_id i2c_id[] = {
 };
 
 static struct i2c_driver msm_sensor_driver_i2c = {
-	.id_table = i2c_id,
-	.probe  = msm_sensor_driver_i2c_probe,
-	.remove = msm_sensor_driver_i2c_remove,
-	.driver = {
-		.name = SENSOR_DRIVER_I2C,
-	},
+    .id_table = i2c_id,
+    .probe  = msm_sensor_driver_i2c_probe,
+    .remove = msm_sensor_driver_i2c_remove,
+    .driver = {
+        .name = SENSOR_DRIVER_I2C,
+    },
 };
 
 static int __init msm_sensor_driver_init(void)

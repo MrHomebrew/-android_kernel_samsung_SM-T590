@@ -99,6 +99,7 @@ typedef struct sm5703_charger_data {
 
 	bool ovp;
 	bool is_mdock;
+	bool slow_rate_chg_mode;
 	struct workqueue_struct *wq;
 	int status;
 #ifdef CONFIG_FLED_SM5703
@@ -408,10 +409,14 @@ static void sm5703_set_input_current_limit(struct sm5703_charger_data *charger,
 			msleep(200);
 		}
 #endif
-		if (current_limit > 100) {
-			temp = ((current_limit - 100) / 50) | data;
-			sm5703_reg_write(charger->i2c, SM5703_VBUSCNTL, temp);
-		}
+		if(current_limit <= 100)
+			current_limit = 100;
+		else if (current_limit >= 2100)
+			current_limit = 2100;
+
+		temp = ((current_limit - 100) / 50) | data;
+		sm5703_reg_write(charger->i2c, SM5703_VBUSCNTL, temp);
+
 
 		data = sm5703_reg_read(charger->i2c, SM5703_VBUSCNTL);
 		pr_info("%s : SM5703_VBUSCNTL (Input current limit) : 0x%02x\n",
@@ -788,6 +793,24 @@ static int sm5703_get_charging_health(struct sm5703_charger_data *charger)
 	return (int)health;
 }
 
+static int psy_chg_get_charge_type(struct sm5703_charger_data *charger)
+{
+    int charge_type;
+
+    if (charger->is_charging) {
+        if (charger->slow_rate_chg_mode) {
+            pr_info("%s: slow rate charge mode\n", __func__);
+            charge_type = POWER_SUPPLY_CHARGE_TYPE_SLOW;
+        } else {
+            charge_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+        }
+    } else {
+        charge_type = POWER_SUPPLY_CHARGE_TYPE_NONE;
+    }
+
+    return charge_type;
+}
+
 static int sec_chg_get_property(struct power_supply *psy,
 		enum power_supply_property psp,
 		union power_supply_propval *val)
@@ -838,13 +861,7 @@ static int sec_chg_get_property(struct power_supply *psy,
 		break;
 #endif
 		case POWER_SUPPLY_PROP_CHARGE_TYPE:
-			if (!charger->is_charging || charger->cable_type == POWER_SUPPLY_TYPE_BATTERY) {
-				val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
-			} else if (charger->input_current <= SLOW_CHARGING_CURRENT_STANDARD) {
-				val->intval = POWER_SUPPLY_CHARGE_TYPE_SLOW;
-				pr_info("%s: slow-charging mode\n", __func__);
-			} else
-				val->intval = POWER_SUPPLY_CHARGE_TYPE_FAST;
+			val->intval = psy_chg_get_charge_type(charger);
 			break;
 		case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 			val->intval = charger->is_charging;
@@ -877,11 +894,9 @@ static int sec_chg_set_property(struct power_supply *psy,
 			break;
 			/* val->intval : type */
 		case POWER_SUPPLY_PROP_ONLINE:
-			pr_info("CHG TEST1\n");
 			charger->cable_type = val->intval;
-			pr_info("CHG TEST2\n");
 			charger->aicl_state = false;
-			pr_info("CHG TEST3\n");
+			charger->slow_rate_chg_mode = false;
 			charger->input_current = charger->pdata->charging_current_table
 					[charger->cable_type].input_current_limit;
 			pr_info("%s:[BATT] cable_type(%d), input_current(%d)\n",
@@ -1223,6 +1238,7 @@ static void sm5703_chg_aicl_work(struct work_struct *work)
 	if (charger->input_current <= SLOW_CHARGING_CURRENT_STANDARD &&
 		charger->cable_type != POWER_SUPPLY_TYPE_BATTERY) {
 		union power_supply_propval value;
+		charger->slow_rate_chg_mode = true;
 		value.intval = POWER_SUPPLY_CHARGE_TYPE_SLOW;
 		psy_do_property("battery", set,
 			POWER_SUPPLY_PROP_CHARGE_TYPE, value);
@@ -1622,6 +1638,7 @@ static int sm5703_charger_probe(struct platform_device *pdev)
 
 	charger->ovp = 0;
 	charger->is_mdock = false;
+	charger->slow_rate_chg_mode = false;
 	sm5703_chg_init(charger);
 
 	charger->wq = create_workqueue("sm5703chg_workqueue");

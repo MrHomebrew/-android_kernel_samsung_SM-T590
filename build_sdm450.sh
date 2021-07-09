@@ -135,6 +135,12 @@ elif [ "$BUILD_COMMAND" == "gta2xllte_cis_ser" ]; then
 	SIGN_MODEL=
 	USE_FINGERPRINT_TZ="false"
 	KASLR_DEFCONFIG=
+elif [ "$BUILD_COMMAND" == "gta2xllte_can_single" ]; then
+	BUILD_PRODUCT=gta2xllte_can_single
+	PRODUCT_NAME=gta2xllte_can
+	SIGN_MODEL=
+	USE_FINGERPRINT_TZ="false"
+	KASLR_DEFCONFIG=
 elif [ "$BUILD_COMMAND" == "gta2xlwifi_eur_open" ]; then
         BUILD_PRODUCT=gta2xlwifi_eur_open
         PRODUCT_NAME=gta2xlwifi_eur
@@ -543,6 +549,7 @@ SECFUNC_PRINT_HELP()
 	echo "      gta2xllte_sea_open"
 	echo "      gta2xllte_usa_spr"
 	echo "      gta2xllte_usa_vzw"
+	echo "      gta2xllte_can_single"
         echo "      gta2xllte_chn_open"
 	echo "      gta2xllte_chn_hk"
 	echo "      gta2xllte_cis_ser"

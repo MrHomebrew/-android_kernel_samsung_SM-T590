@@ -42,7 +42,7 @@
 #endif
 
 /* For debugging */
-#define	cm36686_DEBUG
+/*#define	cm36686_DEBUG*/
 
 #define LINUX_KERNEL_3_10
 
@@ -202,6 +202,7 @@ int cm36686_i2c_write_word(struct cm36686_data *cm36686, u8 command,
 		err = i2c_smbus_write_word_data(client, command, val);
 		if (err >= 0)
 			return 0;
+		usleep_range(2000,2100);
 	}
 	pr_err("%s, i2c transfer error(%d)\n", __func__, err);
 	return err;
@@ -260,7 +261,7 @@ static ssize_t cm36686_poll_delay_store(struct device *dev,
 	return size;
 }
 
-static ssize_t light_enable_store(struct device *dev,
+static ssize_t cm36686_light_enable_store(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t size)
 {
 	struct cm36686_data *cm36686 = dev_get_drvdata(dev);
@@ -288,7 +289,7 @@ static ssize_t light_enable_store(struct device *dev,
 	return size;
 }
 
-static ssize_t light_enable_show(struct device *dev,
+static ssize_t cm36686_light_enable_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
 	struct cm36686_data *cm36686 = dev_get_drvdata(dev);
@@ -358,33 +359,29 @@ static int proximity_store_cancelation(struct device *dev, bool do_calib)
 
 	if (do_calib) {
 		mutex_lock(&cm36686->read_lock);
-		cm36686_i2c_read_word(cm36686,
-			REG_PS_DATA, &ps_data);
-		ps_reg_init_setting[PS_CANCEL][CMD] = ps_data;
+		cm36686_i2c_read_word(cm36686,REG_PS_DATA, &ps_data);
 		mutex_unlock(&cm36686->read_lock);
 
 		pr_info("%s: do cal read data %d\n", __func__, ps_data);
 
-		if (ps_reg_init_setting[PS_CANCEL][CMD] < CAL_SKIP_ADC) {
-			ps_reg_init_setting[PS_CANCEL][CMD] = cm36686->pdata->default_trim;
-			pr_info("%s:crosstalk < %d\n", __func__, CAL_SKIP_ADC);
-			cm36686->uProxCalResult = 2;
-			err = 1;
-		} else if (ps_reg_init_setting[PS_CANCEL][CMD] < CAL_FAIL_ADC) {
-		#if 0
+		if (ps_data < cm36686->pdata->cal_skip_adc) {
+			/* SKIP. CAL_SKIP_ADC */
 			ps_reg_init_setting[PS_CANCEL][CMD] =
 				cm36686->pdata->default_trim;
-		#else
+			pr_info("%s:crosstalk < %d SKIP!!\n", __func__, cm36686->pdata->cal_skip_adc);
+			cm36686->uProxCalResult = 2;
+			err = 1;
+		} else if (ps_data <= cm36686->pdata->cal_fail_adc) {
+			/* CANCELATION. CAL_FAIL_ADC */
 			ps_reg_init_setting[PS_CANCEL][CMD] =
-				cm36686->pdata->default_trim+ps_data;
-		#endif
-			pr_info("%s:crosstalk_offset = %u", __func__,
-				ps_reg_init_setting[PS_CANCEL][CMD]);
+				cm36686->pdata->default_trim + ps_data;
+			pr_info("%s:crosstalk_offset = %u Cancelled", __func__, ps_data);
 			cm36686->uProxCalResult = 1;
 			err = 0;
 		} else {
-			ps_reg_init_setting[PS_CANCEL][CMD] = cm36686->pdata->default_trim;
-			pr_info("%s:crosstalk > %d\n", __func__, CAL_FAIL_ADC);
+			ps_reg_init_setting[PS_CANCEL][CMD] =
+				cm36686->pdata->default_trim;
+			pr_info("%s:crosstalk > %d\n", __func__, cm36686->pdata->cal_fail_adc);
 			cm36686->uProxCalResult = 0;
 			err = 1;
 		}
@@ -409,7 +406,8 @@ static int proximity_store_cancelation(struct device *dev, bool do_calib)
 				DEFUALT_LOW_THD;
 		}
 	} else { /* reset */
-		ps_reg_init_setting[PS_CANCEL][CMD] = cm36686->pdata->default_trim;
+		ps_reg_init_setting[PS_CANCEL][CMD] =
+			cm36686->pdata->default_trim;
 		ps_reg_init_setting[PS_THD_HIGH][CMD] =
 			cm36686->pdata->default_hi_thd ?
 			cm36686->pdata->default_hi_thd :
@@ -543,7 +541,22 @@ static int cm36686_leden_gpio_onoff(struct cm36686_data *cm36686, bool onoff)
 
 #endif
 
-static ssize_t proximity_enable_store(struct device *dev,
+static void cm36686_check_first_far_event(struct cm36686_data *cm36686)
+{
+	u16 ps_data = 0;
+
+	cm36686_i2c_read_word(cm36686, REG_PS_DATA, &ps_data);
+
+	pr_info("[Sensor] first adc = %d\n", ps_data);
+
+	if (ps_data < ps_reg_init_setting[PS_THD_HIGH][CMD]) {
+		pr_info("[Sensor] first far event reported\n");
+		input_report_abs(cm36686->proximity_input_dev, ABS_DISTANCE, 1);
+		input_sync(cm36686->proximity_input_dev);
+	}
+}
+
+static ssize_t cm36686_proximity_enable_store(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t size)
 {
 	struct cm36686_data *cm36686 = dev_get_drvdata(dev);
@@ -561,7 +574,6 @@ static ssize_t proximity_enable_store(struct device *dev,
 	mutex_lock(&cm36686->power_lock);
 	pr_info("%s, new_value = %d\n", __func__, new_value);
 	if (new_value && !(cm36686->power_state & PROXIMITY_ENABLED)) {
-		u8 val = 1;
 		int i;
 		int err = 0;
 
@@ -582,14 +594,12 @@ static ssize_t proximity_enable_store(struct device *dev,
 				ps_reg_init_setting[i][REG_ADDR],
 				ps_reg_init_setting[i][CMD]);
 		}
-		/*send  the far for input update*/
-		input_report_abs(cm36686->proximity_input_dev,
-			ABS_DISTANCE, val);
-		val = gpio_get_value(cm36686->pdata->irq);
-		/* 0 is close, 1 is far */
-		input_report_abs(cm36686->proximity_input_dev,
-			ABS_DISTANCE, val);
-		input_sync(cm36686->proximity_input_dev);
+
+		// Allow chip to update ADC value
+		usleep_range(40000, 40000);
+
+		// Need to check for first far only. First close is reported via interrupt
+		cm36686_check_first_far_event(cm36686);
 
 		enable_irq(cm36686->irq);
 		enable_irq_wake(cm36686->irq);
@@ -608,7 +618,7 @@ static ssize_t proximity_enable_store(struct device *dev,
 	return size;
 }
 
-static ssize_t proximity_enable_show(struct device *dev,
+static ssize_t cm36686_proximity_enable_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
 	struct cm36686_data *cm36686 = dev_get_drvdata(dev);
@@ -622,11 +632,11 @@ static DEVICE_ATTR(poll_delay, S_IRUGO | S_IWUSR | S_IWGRP,
 
 static struct device_attribute dev_attr_light_enable =
 	__ATTR(enable, S_IRUGO | S_IWUSR | S_IWGRP,
-	light_enable_show, light_enable_store);
+	cm36686_light_enable_show, cm36686_light_enable_store);
 
 static struct device_attribute dev_attr_proximity_enable =
 	__ATTR(enable, S_IRUGO | S_IWUSR | S_IWGRP,
-	proximity_enable_show, proximity_enable_store);
+	cm36686_proximity_enable_show, cm36686_proximity_enable_store);
 
 static struct attribute *light_sysfs_attrs[] = {
 	&dev_attr_light_enable.attr,
@@ -660,13 +670,13 @@ static ssize_t cm36686_name_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%s\n", CHIP_ID);
 }
 static struct device_attribute dev_attr_prox_sensor_vendor =
-	__ATTR(vendor, S_IRUSR | S_IRGRP, cm36686_vendor_show, NULL);
+	__ATTR(vendor, S_IRUGO | S_IRUSR | S_IRGRP, cm36686_vendor_show, NULL);
 static struct device_attribute dev_attr_light_sensor_vendor =
-	__ATTR(vendor, S_IRUSR | S_IRGRP, cm36686_vendor_show, NULL);
+	__ATTR(vendor, S_IRUGO | S_IRUSR | S_IRGRP, cm36686_vendor_show, NULL);
 static struct device_attribute dev_attr_prox_sensor_name =
-	__ATTR(name, S_IRUSR | S_IRGRP, cm36686_name_show, NULL);
+	__ATTR(name, S_IRUGO | S_IRUSR | S_IRGRP, cm36686_name_show, NULL);
 static struct device_attribute dev_attr_light_sensor_name =
-	__ATTR(name, S_IRUSR | S_IRGRP, cm36686_name_show, NULL);
+	__ATTR(name, S_IRUGO | S_IRUSR | S_IRGRP, cm36686_name_show, NULL);
 
 /* proximity sysfs */
 static ssize_t proximity_trim_show(struct device *dev,
@@ -1178,6 +1188,20 @@ static int cm36686_parse_dt(struct device *dev,
 		pdata->cancel_low_thd = CANCEL_LOW_THD;
 	}
 
+	ret = of_property_read_u32(np, "cm36686,cal_skip_adc",
+		&pdata->cal_skip_adc);
+	if (ret < 0) {
+		SENSOR_ERR("Cannot set cal_skip_adc through DTSI\n");
+		pdata->cal_skip_adc = CAL_SKIP_ADC;
+	}
+
+	ret = of_property_read_u32(np, "cm36686,cal_fail_adc",
+		&pdata->cal_fail_adc);
+	if (ret < 0) {
+		SENSOR_ERR("Cannot set cal_fail_adc through DTSI\n");
+		pdata->cal_fail_adc = CAL_FAIL_ADC;
+	}
+
 	ret = of_property_read_u32(np, "cm36686,default_trim",
 			&pdata->default_trim);
 	if (ret < 0) {
@@ -1202,31 +1226,36 @@ static int prox_regulator_onoff(struct device *dev, bool onoff)
 {
 	struct regulator *vdd;
 	int ret = 0;
+	int voltage = 0;
 
 	pr_info("[SENSOR] %s %s\n", __func__, (onoff) ? "on" : "off");
 
-	vdd = devm_regulator_get(dev, "reg_vdd");
+	vdd = devm_regulator_get(dev, "cm36686,reg_vdd");
 	if (IS_ERR(vdd)) {
 		pr_err("%s: cannot get vdd\n", __func__);
 		ret = -ENOMEM;
 		goto err_vdd;
-	} else if (!regulator_get_voltage(vdd)) {
-		ret = regulator_set_voltage(vdd, 2850000, 2850000);
+	} else {
+		voltage = regulator_get_voltage(vdd);
+		pr_info("[SENSOR] %s, voltage %d", __func__, voltage);
+		/* Set voltage in dtsi */
 	}
 
 	if (onoff) {
+		if (regulator_is_enabled(vdd)) {
+			SENSOR_INFO("Regulator already enabled\n");
+        }
 		ret = regulator_enable(vdd);
 		if (ret)
 			pr_err("%s: Failed to enable vdd.\n", __func__);
-		msleep(10);
 	} else {
 		ret = regulator_disable(vdd);
 		if (ret)
 			pr_err("%s: Failed to enable vdd.\n", __func__);
-		msleep(10);
 	}
 
-	devm_regulator_put(vdd);
+	usleep_range(20000, 21000);
+
 err_vdd:
 	return ret;
 }

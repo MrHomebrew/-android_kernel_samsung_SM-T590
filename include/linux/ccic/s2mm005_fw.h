@@ -41,7 +41,8 @@ enum {
 	PRODUCT_NUM_GTA2S = 0x05,
 	PRODUCT_NUM_GREAT = 0x0A,
 	PRODUCT_NUM_GTA2XL = 0x0D, /* Actually prodcut num of tablet models is 0x0D */
-	PRODUCT_NUM_GTA2XL_FM = 0x0F, /* HW fix for factory mode */
+	PRODUCT_NUM_GTA2XL_NFM = 0x0F, /* HW fix for new factory mode */
+	PRODUCT_NUM_GTA2XL_OFM = 0x10, /* old factory mode */
 };
 
 struct s2mm005_version {

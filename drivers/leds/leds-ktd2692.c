@@ -42,9 +42,9 @@ static int torchlevel[] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09};
 static int torchlevel[] = {0x00,0x01,0x01,0x02,0x02,0x03,0x04,0x05,0x06,0x08};
 #endif
 #endif
-
+#if !(defined CONFIG_SEC_J3Y17QLTE_PROJECT || defined  CONFIG_SEC_J2Y18LTE_PROJECT)
 int assistive_light = 0;
-
+#endif
 void ktd2692_setGpio(int onoff)
 {
 	if (onoff) {
@@ -56,16 +56,32 @@ void ktd2692_setGpio(int onoff)
 void ktd2692_set_low_bit(void)
 {
 	__gpio_set_value(global_ktd2692data->flash_control, 0);
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+	ndelay(T_L_LB*1000);	/* 12ms */
+#else
 	udelay(T_L_LB);	/* 80ms */
+#endif
 	__gpio_set_value(global_ktd2692data->flash_control, 1);
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+	ndelay(T_H_LB*1000);	/* 4ms */
+#else
 	udelay(T_H_LB);	/* 5ms */
+#endif
 }
 void ktd2692_set_high_bit(void)
 {
 	__gpio_set_value(global_ktd2692data->flash_control, 0);
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+	ndelay(T_L_HB*1000);	/* 4ms */
+#else
 	udelay(T_L_HB);	/* 5ms */
+#endif
 	__gpio_set_value(global_ktd2692data->flash_control, 1);
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+	ndelay(T_H_HB*1000);	/* 12ms */
+#else
 	udelay(T_H_HB);	/* 80ms */
+#endif
 }
 static int ktd2692_set_bit(unsigned int bit)
 {
@@ -135,15 +151,26 @@ void ktd2692_flash_on(unsigned data)
 			ktd2692_setGpio(0);
 			gpio_free(global_ktd2692data->flash_control);
 			printk("<ktd2692_flash_on> KTD2692-TORCH OFF. : X(%d)\n", data);
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+			pinctrl = devm_pinctrl_get_select(ktd2692_dev, "front_fled_sleep");
+			if (IS_ERR(pinctrl))
+				pr_err("%s: flash %s pins are not configured\n", __func__, "front_fled_sleep");
+#else
 			pinctrl = devm_pinctrl_get_select(ktd2692_dev, "fled_sleep");
 			if (IS_ERR(pinctrl))
 				pr_err("%s: flash %s pins are not configured\n", __func__, "fled_sleep");
+#endif
 		}
    }else{
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+		pinctrl = devm_pinctrl_get_select(ktd2692_dev, "front_fled_default");
+		if (IS_ERR(pinctrl))
+			pr_err("%s: flash %s pins are not configured\n", __func__, "front_fled_default");
+#else
 		pinctrl = devm_pinctrl_get_select(ktd2692_dev, "fled_default");
 		if (IS_ERR(pinctrl))
 			pr_err("%s: flash %s pins are not configured\n", __func__, "fled_default");
-
+#endif
 		ret = gpio_request(global_ktd2692data->flash_control, "ktd2692_led_control");
 		if (ret) {
 			printk("Failed to requeset ktd2692_led_control\n");
@@ -163,6 +190,7 @@ void ktd2692_flash_on(unsigned data)
 		}
 	}
 }
+#if !(defined CONFIG_SEC_J3Y17QLTE_PROJECT)
 int ktd2692_fled_led_off(unsigned char index)
 {
 	int ret;
@@ -194,8 +222,10 @@ EXPORT_SYMBOL(ktd2692_fled_led_off);
 int msm_fled_led_off_ktd2692(ext_pmic_flash_ctrl_t *flash_ctrl)
 {
     int ret = 0;
+#if !(defined  CONFIG_SEC_J2Y18LTE_PROJECT)
     if(!assistive_light)
       ret = ktd2692_fled_led_off(flash_ctrl->index);
+#endif
     return ret;
 }
 EXPORT_SYMBOL(msm_fled_led_off_ktd2692);
@@ -235,8 +265,10 @@ EXPORT_SYMBOL(ktd2692_fled_torch_on);
 int msm_fled_torch_on_ktd2692(ext_pmic_flash_ctrl_t *flash_ctrl)
 {
     int ret = 0;
+#if !(defined  CONFIG_SEC_J2Y18LTE_PROJECT)
     if(!assistive_light)
        ret = ktd2692_fled_torch_on(flash_ctrl->index);
+#endif
     return ret;
 }
 EXPORT_SYMBOL(msm_fled_torch_on_ktd2692);
@@ -306,8 +338,10 @@ int ktd2692_fled_pre_flash_on(unsigned char index, int32_t pre_flash_current_mA)
 int msm_fled_pre_flash_on_ktd2692(ext_pmic_flash_ctrl_t *flash_ctrl)
 {
     int ret = 0;
+#if !(defined  CONFIG_SEC_J2Y18LTE_PROJECT)
     if(!assistive_light)
       ret = ktd2692_fled_pre_flash_on(flash_ctrl->index, flash_ctrl->flash_current_mA);
+#endif
     return ret;
 }
 EXPORT_SYMBOL(msm_fled_pre_flash_on_ktd2692);
@@ -315,8 +349,10 @@ EXPORT_SYMBOL(msm_fled_pre_flash_on_ktd2692);
 int msm_fled_flash_on_ktd2692(ext_pmic_flash_ctrl_t *flash_ctrl)
 {
     int ret = 0;
+#if !(defined  CONFIG_SEC_J2Y18LTE_PROJECT)
     if(!assistive_light)
       ret = ktd2692_fled_flash_on(flash_ctrl->index);
+#endif
     return ret;
 }
 EXPORT_SYMBOL(msm_fled_flash_on_ktd2692);
@@ -332,8 +368,7 @@ int msm_fled_flash_on_set_current_ktd2692(ext_pmic_flash_ctrl_t *flash_ctrl)
 	return ktd2692_fled_flash_on_set_current(flash_ctrl->index, flash_ctrl->flash_current_mA);
 }
 EXPORT_SYMBOL(msm_fled_flash_on_set_current_ktd2692);
-
-
+#endif
 
 ssize_t ktd2692_store(struct device *dev,
 			struct device_attribute *attr, const char *buf,
@@ -352,7 +387,9 @@ ssize_t ktd2692_store(struct device *dev,
     
 	global_ktd2692data->sysfs_input_data = value;
 	if (value <= 0) {
+#if !(defined CONFIG_SEC_J3Y17QLTE_PROJECT || defined  CONFIG_SEC_J2Y18LTE_PROJECT)
 		assistive_light = 0;
+#endif
 		ret = gpio_request(global_ktd2692data->flash_control, "ktd2692_led_control");
 		if (ret) {
 			printk("Failed to requeset ktd2692_led_control\n");
@@ -366,13 +403,23 @@ ssize_t ktd2692_store(struct device *dev,
 			gpio_free(global_ktd2692data->flash_control);
 			printk("KTD2692-TORCH OFF. : X(%d)\n", value);
 		}
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+		pinctrl = devm_pinctrl_get_select(ktd2692_dev, "front_fled_sleep");
+#else
 		pinctrl = devm_pinctrl_get_select(ktd2692_dev, "fled_sleep");
+#endif
 		if (IS_ERR(pinctrl))
 			pr_err("%s: flash %s pins are not configured\n", __func__, "is");
 	} else if((value == 1) || (value == 100) || (value == 200)){
+#if !(defined CONFIG_SEC_J3Y17QLTE_PROJECT || defined  CONFIG_SEC_J2Y18LTE_PROJECT)
 		if(value == 1)
 		   assistive_light = 1;
+#endif
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+		pinctrl = devm_pinctrl_get_select(ktd2692_dev, "front_fled_default");
+#else
 		pinctrl = devm_pinctrl_get_select(ktd2692_dev, "fled_default");
+#endif
 		if (IS_ERR(pinctrl))
 			pr_err("%s: flash %s pins are not configured\n", __func__, "host");
 		ret = gpio_request(global_ktd2692data->flash_control, "ktd2692_led_control");
@@ -398,7 +445,11 @@ ssize_t ktd2692_store(struct device *dev,
 	}
 #if defined(CONFIG_ACTIVE_FLASH)
 	else if (value>1000 && value<=1010) {
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+		pinctrl = devm_pinctrl_get_select(ktd2692_dev, "front_fled_default");
+#else
 		pinctrl = devm_pinctrl_get_select(ktd2692_dev, "fled_default");
+#endif
 		if (IS_ERR(pinctrl))
 			pr_err("%s: flash %s pins are not configured\n", __func__, "host");
 		ret = gpio_request(global_ktd2692data->flash_control, "ktd2692_led_control");
@@ -449,15 +500,19 @@ static int ktd2692_parse_dt(struct device *dev,
 	pdata->LVP_Voltage = KTD2692_DISABLE_LVP;
 	pdata->flash_timeout = KTD2692_TIMER_1049ms;	/* default */
 	pdata->min_current_value = KTD2692_MIN_CURRENT_240mA;
-#if defined(CONFIG_SEC_J2Y18LTE_PROJECT)
+#if defined(CONFIG_SEC_J2Y18LTE_PROJECT) || defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
 	pdata->movie_current_value = KTD2692_MOVIE_CURRENT9;
 #else
 	pdata->movie_current_value = KTD2692_MOVIE_CURRENT6;
 #endif
+#if defined(CONFIG_SEC_J3Y17QLTE_PROJECT)
+	pdata->factory_movie_current_value = KTD2692_MOVIE_CURRENT10;
+	pdata->flash_current_value = KTD2692_FLASH_CURRENT16;
+#else
 	pdata->factory_movie_current_value = KTD2692_MOVIE_CURRENT6;
 	pdata->flash_current_value = KTD2692_FLASH_CURRENT15;
 	pdata->pre_flash_current_value = KTD2692_FLASH_CURRENT2;
-		
+#endif		
 	pdata->mode_status = KTD2692_DISABLES_MOVIE_FLASH_MODE;
 
 	/* get gpio */

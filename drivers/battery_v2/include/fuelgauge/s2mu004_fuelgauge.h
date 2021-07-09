@@ -96,6 +96,7 @@ struct sec_fg_info {
 		unsigned long fullcap_check_interval;
 		int full_check_flag;
 		bool is_first_check;
+		int data_ver;
 };
 #if defined(CONFIG_BATTERY_AGE_FORECAST)
 struct fg_age_data_info {
@@ -156,6 +157,7 @@ struct s2mu004_fuelgauge_data {
 		struct wake_lock fuel_alert_wake_lock;
 		unsigned int capacity_old;      /* only for atomic calculation */
 		unsigned int capacity_max;      /* only for dynamic calculation */
+		int raw_capacity;
 		unsigned int standard_capacity;
 		bool initial_update_of_soc;
 		bool sleep_initial_update_of_soc;

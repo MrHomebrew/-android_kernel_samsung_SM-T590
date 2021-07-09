@@ -520,8 +520,10 @@ again:
 		shmem_swizzled = PageSwapCache(page) || page->mapping;
 		unlock_page(page_head);
 		put_page(page_head);
+
 		if (shmem_swizzled)
 			goto again;
+
 		return -EFAULT;
 	}
 
@@ -1599,6 +1601,9 @@ static int futex_requeue(u32 __user *uaddr1, unsigned int flags,
 	if (nr_wake < 0 || nr_requeue < 0)
 		return -EINVAL;
 
+	if (nr_wake < 0 || nr_requeue < 0)
+		return -EINVAL;
+
 	if (requeue_pi) {
 		/*
 		 * Requeue PI only works on two distinct uaddrs. This
@@ -1916,8 +1921,12 @@ static int unqueue_me(struct futex_q *q)
 
 	/* In the common case we don't take the spinlock, which is nice. */
 retry:
-	lock_ptr = q->lock_ptr;
-	barrier();
+	/*
+	 * q->lock_ptr can change between this read and the following spin_lock.
+	 * Use READ_ONCE to forbid the compiler from reloading q->lock_ptr and
+	 * optimizing lock_ptr out of the logic below.
+	 */
+	lock_ptr = READ_ONCE(q->lock_ptr);
 	if (lock_ptr != NULL) {
 		spin_lock(lock_ptr);
 		/*

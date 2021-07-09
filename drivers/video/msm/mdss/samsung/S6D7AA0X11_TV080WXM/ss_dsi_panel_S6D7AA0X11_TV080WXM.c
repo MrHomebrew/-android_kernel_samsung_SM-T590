@@ -29,7 +29,11 @@ Copyright (C) 2012, Samsung Electronics. All rights reserved.
  * 02110-1301, USA.
  *
 */
+#if defined(CONFIG_SEC_GTA2SLTE_PROJECT) || defined(CONFIG_SEC_GTA2SWIFI_PROJECT)
+#include "ss_dsi_mdnie_S6D7AA0X11_TV080WXM_gtab2s.h"
+#else
 #include "ss_dsi_mdnie_S6D7AA0X11_TV080WXM.h"
+#endif
 #include "ss_dsi_panel_S6D7AA0X11_TV080WXM.h"
 
 static int mdss_panel_on_pre(struct mdss_dsi_ctrl_pdata *ctrl)
@@ -296,8 +300,8 @@ static void dsi_update_mdnie_data(void)
 		mdnie_data.dsi1_white_default_g = 0xff;
 		mdnie_data.dsi1_white_default_b = 0xff;
 		mdnie_data.dsi1_white_rgb_enabled = 0;
-		mdnie_data.dsi0_scr_step_index = MDNIE_STEP1_INDEX;
-		mdnie_data.dsi1_scr_step_index = MDNIE_STEP1_INDEX;
+		mdnie_data.dsi0_scr_step_index = MDNIE_STEP2_INDEX;
+		mdnie_data.dsi1_scr_step_index = MDNIE_STEP2_INDEX;
 }
 
 static void mdss_panel_init(struct samsung_display_driver_data *vdd)

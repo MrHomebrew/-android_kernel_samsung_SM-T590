@@ -57,6 +57,57 @@ elif [ "$BUILD_COMMAND" == "j5y18lte_swa_open" ]; then
 	PRODUCT_NAME=j5y18ltedd
 	SIGN_MODEL=
 
+elif [ "$BUILD_COMMAND" == "j6primelte_swa_open" ]; then
+	BUILD_PRODUCT=j6primelte_swa_open
+	PRODUCT_NAME=j6primeltedd
+	SIGN_MODEL=
+
+elif [ "$BUILD_COMMAND" == "j6primelte_eur_open" ]; then
+	BUILD_PRODUCT=j6primelte_eur_open
+	PRODUCT_NAME=j6primeltexx
+	SIGN_MODEL=
+
+elif [ "$BUILD_COMMAND" == "j6primelte_cis_ser" ]; then
+	BUILD_PRODUCT=j6primelte_cis_ser
+	PRODUCT_NAME=j6primelteser
+	SIGN_MODEL=
+
+elif [ "$BUILD_COMMAND" == "j4primelte_sea_open" ]; then
+	BUILD_PRODUCT=j4primelte_sea_open
+	PRODUCT_NAME=j4primeltedx
+	SIGN_MODEL=
+
+elif [ "$BUILD_COMMAND" == "j4primelte_cis_ser" ]; then
+	BUILD_PRODUCT=j4primelte_cis_ser
+	PRODUCT_NAME=j4primelteser
+	SIGN_MODEL=
+
+elif [ "$BUILD_COMMAND" == "j4primelte_cis_open" ]; then
+	BUILD_PRODUCT=j4primelte_cis_open
+	PRODUCT_NAME=j4primeltecis
+	SIGN_MODEL=
+
+elif [ "$BUILD_COMMAND" == "j4primelte_sea_xtc" ]; then
+	BUILD_PRODUCT=j4primelte_sea_xtc
+	PRODUCT_NAME=j4primeltextc
+	SIGN_MODEL=
+
+elif [ "$BUILD_COMMAND" == "j4primelte_kor_kx" ]; then
+	BUILD_PRODUCT=j4primelte_kor_kx
+	PRODUCT_NAME=j4primeltekx
+	SIGN_MODEL=
+
+
+elif [ "$BUILD_COMMAND" == "j4corelte_mea_open" ]; then
+	BUILD_PRODUCT=j4corelte_mea_open
+	PRODUCT_NAME=j4coreltejx
+	SIGN_MODEL=
+	
+elif [ "$BUILD_COMMAND" == "j4corelte_ltn_open" ]; then
+	BUILD_PRODUCT=j4corelte_ltn_open
+	PRODUCT_NAME=j4corelteub
+	SIGN_MODEL=
+	
 elif [ "$BUILD_COMMAND" == "gta2slte_eur_open" ]; then
 	BUILD_PRODUCT=gta2slte_eur_open
 	PRODUCT_NAME=gta2sltexx
@@ -126,6 +177,11 @@ elif [ "$BUILD_COMMAND" == "gtaslitelte_usa_vzw" ]; then
 	BUILD_PRODUCT=gtaslitelte_usa_vzw
 	PRODUCT_NAME=gtasliteltevzw
 	SIGN_MODEL=
+	
+elif [ "$BUILD_COMMAND" == "gtaslitelte_usa_vzwkids" ]; then
+	BUILD_PRODUCT=gtaslitelte_usa_vzwkids
+	PRODUCT_NAME=gtasliteltevzwkids
+	SIGN_MODEL=
 
 elif [ "$BUILD_COMMAND" == "on5xllte_chn_open" ]; then
 	BUILD_PRODUCT=on5xllte_chn
@@ -161,7 +217,7 @@ PRODUCT_OUT=$BUILD_ROOT_DIR/android/out/target/product/$PRODUCT_NAME
 
 
 SECURE_SCRIPT=$BUILD_ROOT_DIR/buildscript/tools/signclient.jar
-BUILD_CROSS_COMPILE=$BUILD_ROOT_DIR/android/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+BUILD_CROSS_COMPILE=$BUILD_ROOT_DIR/android/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin/arm-linux-androidkernel-
 BUILD_JOB_NUMBER=`grep processor /proc/cpuinfo|wc -l`
 
 # Default Python version is 2.7
@@ -444,6 +500,14 @@ SECFUNC_PRINT_HELP()
 	echo "	for j1y17lte eur open use j1y17lte_eur_open"
 	echo "	for j2y18lte mea open use j2y18lte_mea_open"
 	echo "	for j5y18lte swa open use j5y18lte_swa_open"
+	echo "	for j6primelte swa open use j6primelte_swa_open"
+	echo "	for j6primelte eur open use j6primelte_eur_open"
+	echo "	for j6primelte cis ser use j6primelte_cis_ser"
+	echo "	for j4primelte sea open use j4primelte_sea_open"
+	echo "	for j4primelte cis ser use j4primelte_cis_ser"
+	echo "	for j4primelte cis open use j4primelte_cis_open"
+	echo "	for j4primelte sea xtc use j4primelte_sea_xtc"
+	echo "	for j4corelte mea open use j4corelte_mea_open"
 	echo "	for j3y17qlte swa open use j3y17qlte_swa_open"
 	echo "	for gta2slte eur open use gta2slte_eur_open"
 	echo "	for gta2slte sea open use gta2slte_sea_open"
@@ -459,6 +523,7 @@ SECFUNC_PRINT_HELP()
 	echo "	for gta2swifi chn open use gta2swifi_chn_open"
 	echo "	for gtesy18lte eur open use gtesy18lte_usa_vzw"
 	echo "	for gtaslitelte usa vzw use gtaslitelte_usa_vzw"
+	echo "	for gtaslitelte usa vzwkids use gtaslitelte_usa_vzwkids"
 	echo "  \$2 : "
 	echo "	-B or Nothing  (-B : Secure Binary)"
 	echo "  \$3 : "

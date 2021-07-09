@@ -55,7 +55,7 @@
 #define VFE_PING_FLAG 0xFFFFFFFF
 #define VFE_PONG_FLAG 0x0
 
-#define VFE_MAX_CFG_TIMEOUT 3000
+#define VFE_MAX_CFG_TIMEOUT 10000
 #define VFE_CLK_INFO_MAX 16
 #define STATS_COMP_BIT_MASK 0x1FF
 
@@ -735,6 +735,8 @@ struct vfe_device {
 	struct mutex core_mutex;
 	spinlock_t shared_data_lock;
 	spinlock_t reg_update_lock;
+	spinlock_t reset_completion_lock;
+        spinlock_t halt_completion_lock;
 	spinlock_t tasklet_lock;
 
 	/* Tasklet info */

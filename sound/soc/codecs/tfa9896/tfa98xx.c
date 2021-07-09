@@ -2107,10 +2107,12 @@ static int tfa98xx_set_stop_ctl(struct snd_kcontrol *kcontrol,
 
 	if ((ucontrol->value.integer.value[0] != 0) && ready) {
 		cancel_delayed_work_sync(&tfa98xx->monitor_work);
-
 		cancel_delayed_work_sync(&tfa98xx->init_work);
+		tfa98xx->init_count = 0;
+
 		if (tfa98xx->dsp_fw_state != TFA98XX_DSP_FW_OK)
 			return 0;
+
 		mutex_lock(&tfa98xx->dsp_lock);
 		tfa_stop();
 		tfa98xx->dsp_init = TFA98XX_DSP_INIT_STOPPED;
@@ -3405,8 +3407,8 @@ static void tfa98xx_dsp_init_work(struct work_struct *work)
 	struct tfa98xx *tfa98xx =
 		container_of(work, struct tfa98xx, init_work.work);
 
-	/* Only do dsp init for master device */
-	if (tfa98xx->handle != 0)
+	/* Only do dsp init for last device */
+	if (tfa98xx->handle != tfa98xx_cnt_max_device() - 1)
 		return;
 
 	tfa98xx_dsp_init(tfa98xx);
@@ -3927,11 +3929,29 @@ static int _tfa98xx_mute(struct tfa98xx *tfa98xx, int mute, int stream)
 			return 0;
 		}
 
+		/* Only do dsp init for last device */
+		if (tfa98xx->handle != tfa98xx_cnt_max_device() - 1)
+			return 0;
+
 		/* Start DSP */
 		pr_info("%s: start tfa amp\n", __func__);
+
+#if defined(USE_TFA9896)
+		if (tfa98xx_get_profile_chsa
+			(tfa98xx->handle, tfa98xx_profile) < 2) {
+			pr_debug("%s: bypass case\n", __func__);
+			tfa98xx_dsp_init(tfa98xx);
+		} else {
+			pr_debug("%s: DSP-enabled case\n", __func__);
+			if (tfa98xx->dsp_init != TFA98XX_DSP_INIT_PENDING)
+				queue_delayed_work(tfa98xx->tfa98xx_wq,
+					&tfa98xx->init_work, 0);
+		}
+#else
 		if (tfa98xx->dsp_init != TFA98XX_DSP_INIT_PENDING)
 			queue_delayed_work(tfa98xx->tfa98xx_wq,
-					   &tfa98xx->init_work, 0);
+				&tfa98xx->init_work, 0);
+#endif
 	}
 
 	return 0;

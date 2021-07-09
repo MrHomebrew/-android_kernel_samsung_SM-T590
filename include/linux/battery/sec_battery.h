@@ -338,7 +338,7 @@ struct sec_battery_info {
 	bool complete_timetofull;
 	struct delayed_work timetofull_work;
 #endif
-#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER)
+#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER) || defined(CONFIG_ENABLE_100MA_CHARGING_BEFORE_USB_CONFIGURED)
 	struct delayed_work slowcharging_work;
 #endif
 #if defined(CONFIG_BATTERY_AGE_FORECAST)

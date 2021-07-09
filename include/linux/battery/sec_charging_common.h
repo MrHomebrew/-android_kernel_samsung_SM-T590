@@ -38,6 +38,7 @@
 
 enum power_supply_ext_property {
 	POWER_SUPPLY_EXT_PROP_AICL_CURRENT = POWER_SUPPLY_PROP_MAX,
+	POWER_SUPPLY_EXT_PROP_UPDATE_BATTERY_DATA,
 };
 
 enum sec_battery_usb_conf {

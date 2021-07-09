@@ -12,6 +12,22 @@ config USE_MUIC
 	  If you say yes here you will get support for
 	  the MUIC device driver.
 
+config MUIC_VZW_ACC
+	bool "Using Verizon Acc type"
+	depends on USE_MUIC
+	default n
+	help
+		If you say yes here you will get support for
+		for the Verizon Acc type cable.
+
+config MUIC_INCOMPATIBLE_VZW
+	bool "Using Verizon incomatible type"
+	depends on USE_MUIC
+	default n
+	help
+		If you say yes here you will get support for
+		for the Verizon incomatible type cable.
+
 config USE_SAFEOUT
 	bool "Using SAFEOUT device driver"
 	depends on I2C
@@ -27,6 +43,15 @@ config MUIC_NOTIFIER
 	help
 	  If you say yes here you will get support for
 	  the MUIC attached device status change notification.
+
+config MUIC_DOCK_NOTIFIER
+	bool "MUIC dock notifier support"
+	depends on USE_MUIC
+	default y
+	help
+	  If you say yes here you will get support for
+	  the MUIC deskdock attached device status change notification.
+	  additional drivers must be disable to stop notification.
 	  
 config MUIC_SUPPORT_EARJACK
 	bool "MUIC earjack support"
@@ -98,6 +123,15 @@ config MUIC_MAX77843
 	help
 	  If you say yes here you will get support for
 	  for the MAX77843 MUIC chip.
+
+config S2MU005_SUPPORT_BC1P2_CERTI
+	bool "S2MU005 Support BC 1.2 Certification"
+	depends on USE_MUIC && MUIC_S2MU005
+	default n
+	help
+	 Support for the BC 1.2 Certification.
+	 This driver provides common support for accessing the device,
+	 additional drivers must be enabled in order to use the functionality
 
 config HV_MUIC_MAX77843_AFC
 	bool "Using MAX77843 AFC MUIC"
@@ -327,3 +361,16 @@ config GPIO_UART_SEL
 	help
 	  If you say yes here you will get support for gpio setting for uart_sel.
 
+config MUIC_S2MU005_SUPPORT_DESKDOCK
+	bool "MUIC_S2MU005_SUPPORT_DESKDOCK"
+	depends on USE_MUIC && MUIC_S2MU005
+	default n
+	help
+	  If you say yes here you will get support for muic deskdock.
+
+config MUIC_S2MU005_SUPPORT_WATERPROOF
+	bool "MUIC_S2MU005_SUPPORT_WATERPROOF"
+	depends on USE_MUIC && MUIC_S2MU005
+	default n
+	help
+	  If you say yes here you will get support for muic waterproof functionality.

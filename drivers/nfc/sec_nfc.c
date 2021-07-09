@@ -939,6 +939,7 @@ exit:
 
 	return size;
 }
+
 static ssize_t sec_nfc_test_store(struct class *dev,
 					struct class_attribute *attr,
 					const char *buf, size_t size)
@@ -948,6 +949,15 @@ static ssize_t sec_nfc_test_store(struct class *dev,
 
 static CLASS_ATTR(test, 0664, sec_nfc_test_show, sec_nfc_test_store);
 #endif
+
+static ssize_t nfc_support_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	NFC_LOG_INFO("\n");
+	return 0;
+}
+
+static CLASS_ATTR(nfc_support, 0444, nfc_support_show, NULL);
 
 #ifdef SEC_NFC_USE_PINCTRL
 static int sec_nfc_pinctrl(struct device *dev, bool active)
@@ -1079,7 +1089,7 @@ static int __sec_nfc_probe(struct device *dev)
 	/* Move PVDD ON for power sequence btwn PVDD and NFCPD(EN) */
 	if (of_get_property(dev->of_node, "sec-nfc,ldo_control", NULL)) {
 		if (pdata->nfc_pvdd != NULL) {
-			if (!lpcharge) {
+			if (!poweroff_charging) {
 				ret = sec_nfc_regulator_onoff(info->dev, pdata, NFC_I2C_LDO_ON);
 				if (ret < 0)
 					NFC_LOG_ERR("regulator_on fail err = %d\n", ret);
@@ -1094,7 +1104,7 @@ static int __sec_nfc_probe(struct device *dev)
 				NFC_LOG_ERR("failed to request about pvdd_en pin\n");
 				goto err_dev_reg;
 			}
-			if (!lpcharge)
+			if (!poweroff_charging)
 				gpio_direction_output(pdata->pvdd_en, NFC_I2C_LDO_ON);
 	
 			NFC_LOG_INFO("pvdd en: %d\n", gpio_get_value(pdata->pvdd_en));
@@ -1123,14 +1133,22 @@ static int __sec_nfc_probe(struct device *dev)
 	g_nfc_info = info;
 	nfc_class = class_create(THIS_MODULE, "nfc_test");
 	if (IS_ERR(&nfc_class))
-		NFC_LOG_ERR("NFC: failed to create nfc class\n");
+		NFC_LOG_ERR("NFC: failed to create nfc_test class\n");
 	else {
 		ret = class_create_file(nfc_class, &class_attr_test);
 		if (ret)
 			NFC_LOG_ERR("NFC: failed to create attr_test\n");
 	}
 #endif
-	NFC_LOG_INFO("success info: %p, pdata %p\n", info, pdata);
+	nfc_class = class_create(THIS_MODULE, "nfc");
+	if (IS_ERR(&nfc_class))
+		NFC_LOG_ERR("NFC: failed to create nfc class\n");
+	else {
+		ret = class_create_file(nfc_class, &class_attr_nfc_support);
+		if (ret)
+			NFC_LOG_ERR("NFC: failed to create attr_nfc_support\n");
+	}
+	NFC_LOG_INFO("success\n");
 
 	return 0;
 

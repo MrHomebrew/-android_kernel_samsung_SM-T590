@@ -3228,7 +3228,6 @@ static int set_dmic_power(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		/*Add delay to avoid pop noise*/
-		msleep(150);
 		break;
 
 	case SND_SOC_DAPM_PRE_PMU:

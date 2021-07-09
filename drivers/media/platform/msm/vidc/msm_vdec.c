@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -22,6 +22,7 @@
 #define MSM_VDEC_DVC_NAME "msm_vdec_8974"
 #define MIN_NUM_OUTPUT_BUFFERS 4
 #define MIN_NUM_OUTPUT_BUFFERS_VP9 6
+#define MIN_NUM_OUTPUT_BUFFERS_HEVC 5
 #define MIN_NUM_CAPTURE_BUFFERS 6
 #define MIN_NUM_THUMBNAIL_MODE_CAPTURE_BUFFERS 1
 #define MAX_NUM_OUTPUT_BUFFERS VB2_MAX_FRAME
@@ -31,6 +32,7 @@
 #define OPERATING_FRAME_RATE_STEP (1 << 16)
 #define SLAVE_SIDE_CP_ALIGNMENT 0x100000
 #define MASTER_SIDE_CP_ALIGNMENT 0x1000
+#include <soc/qcom/socinfo.h>
 
 static const char *const mpeg_video_vidc_divx_format[] = {
 	"DIVX Format 3",
@@ -620,7 +622,14 @@ static u32 get_frame_size_nv12_ubwc(int plane, u32 height, u32 width)
 static u32 get_frame_size_compressed(int plane,
 					u32 max_mbs_per_frame, u32 size_per_mb)
 {
-	return (max_mbs_per_frame * size_per_mb * 3/2)/2;
+	u32 frame_size = (max_mbs_per_frame * size_per_mb * 3/2)/2;
+	u32 soc_id = socinfo_get_id();
+	/* SAMSUNG LIMITS DEC INPUT BUFFER SIZE TO 1.5MB (SECURE 2MB) for SDM450 chipset */
+	if(soc_id == 338/* SDM450 */ || soc_id == 351/* SDA450 */ ) {
+		if (frame_size > 1566720)
+			frame_size = 1566720; /* 1566720 = (1920*1088*3/2)/2 */
+	}
+	return frame_size;
 }
 
 static u32 get_frame_size_nv12_ubwc_10bit(int plane, u32 height, u32 width)
@@ -1494,6 +1503,10 @@ static int msm_vdec_queue_setup(struct vb2_queue *q,
 				V4L2_PIX_FMT_VP9 &&
 				*num_buffers < MIN_NUM_OUTPUT_BUFFERS_VP9)
 			*num_buffers = MIN_NUM_OUTPUT_BUFFERS_VP9;
+		else if (inst->fmts[OUTPUT_PORT].fourcc ==
+				V4L2_PIX_FMT_HEVC &&
+				*num_buffers < MIN_NUM_OUTPUT_BUFFERS_HEVC)
+			*num_buffers = MIN_NUM_OUTPUT_BUFFERS_HEVC;
 
 		for (i = 0; i < *num_planes; i++) {
 			sizes[i] = get_frame_size(inst,
@@ -1582,7 +1595,7 @@ static int msm_vdec_queue_setup(struct vb2_queue *q,
 			}
 
 			rc = set_actual_buffer_count(inst,
-				bufreq->buffer_count_actual,
+				bufreq->buffer_count_min,
 				HAL_BUFFER_OUTPUT);
 			if (rc)
 				break;

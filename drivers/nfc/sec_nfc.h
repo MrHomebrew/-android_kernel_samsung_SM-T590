@@ -97,6 +97,7 @@ enum sec_nfc_npt_mode {
 // [END] NPT
 
 extern unsigned int lpcharge;
+extern int poweroff_charging;
 
 #define NFC_I2C_LDO_ON  1
 #define NFC_I2C_LDO_OFF 0

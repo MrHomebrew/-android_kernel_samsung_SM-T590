@@ -472,6 +472,8 @@ static int sec_bat_set_charging_current(struct sec_battery_info *battery)
 
 	battery->input_current_step_up = false;
 	mutex_lock(&battery->iolock);
+	if(battery->aicl_current)
+		input_current = battery->aicl_current;
 	if (battery->cable_type == POWER_SUPPLY_TYPE_BATTERY) {
 		battery->wireless_input_current =
 			battery->pdata->charging_current[POWER_SUPPLY_TYPE_BATTERY].input_current_limit;
@@ -1993,6 +1995,10 @@ static bool sec_bat_set_aging_step(struct sec_battery_info *battery, int step)
 
 #if defined(CONFIG_FUELGAUGE_SM5703)
 	sec_bat_set_fg_learn(battery, 1);
+#elif defined(CONFIG_FUELGAUGE_S2MU005)
+	value.intval = battery->pdata->age_step;
+	psy_do_property(battery->pdata->fuelgauge_name, set,
+		POWER_SUPPLY_EXT_PROP_UPDATE_BATTERY_DATA, value);
 #else
 	value.intval = battery->pdata->full_condition_soc;
 	psy_do_property(battery->pdata->fuelgauge_name, set,
@@ -3819,7 +3825,7 @@ static void sec_bat_time_to_full_work(struct work_struct *work)
 }
 #endif
 
-#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER)
+#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER) || defined(CONFIG_ENABLE_100MA_CHARGING_BEFORE_USB_CONFIGURED)
 extern bool get_usb_enumeration_state(void);
 /* To disaply slow charging when usb charging 100MA*/
 static void sec_bat_check_slowcharging_work(struct work_struct *work)
@@ -4555,7 +4561,7 @@ static void sec_bat_cable_work(struct work_struct *work)
 #if defined(CONFIG_CALC_TIME_TO_FULL)
 		cancel_delayed_work(&battery->timetofull_work);
 #endif
-#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER)
+#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER) || defined(CONFIG_ENABLE_100MA_CHARGING_BEFORE_USB_CONFIGURED)
 		cancel_delayed_work(&battery->slowcharging_work);
 #endif
 		battery->skip_chg_temp_check = false;
@@ -4629,7 +4635,7 @@ static void sec_bat_cable_work(struct work_struct *work)
 		queue_delayed_work_on(0, battery->monitor_wqueue, &battery->timetofull_work,
 					msecs_to_jiffies(7000));
 #endif
-#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER)
+#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER) || defined(CONFIG_ENABLE_100MA_CHARGING_BEFORE_USB_CONFIGURED)
 		if (battery->cable_type == POWER_SUPPLY_TYPE_USB)
 			queue_delayed_work(battery->monitor_wqueue, &battery->slowcharging_work,
 					msecs_to_jiffies(3000));
@@ -4672,6 +4678,7 @@ static void sec_bat_cable_work(struct work_struct *work)
 		POWER_SUPPLY_PROP_ONLINE, val);
 	psy_do_property(battery->pdata->fuelgauge_name, set,
 		POWER_SUPPLY_PROP_ONLINE, val);
+	battery->aicl_current = 0;
 
 	if (battery->status != POWER_SUPPLY_STATUS_DISCHARGING)
 		sec_bat_check_input_voltage(battery);
@@ -7253,9 +7260,9 @@ static int sec_bat_cable_check(struct sec_battery_info *battery,
 	case ATTACHED_DEV_USB_MUIC:
 	case ATTACHED_DEV_JIG_USB_OFF_MUIC:
 	case ATTACHED_DEV_SMARTDOCK_USB_MUIC:
-	case ATTACHED_DEV_UNOFFICIAL_ID_USB_MUIC:
 		current_cable_type = POWER_SUPPLY_TYPE_USB;
 		break;
+	case ATTACHED_DEV_UNOFFICIAL_ID_USB_MUIC:
 	case ATTACHED_DEV_TIMEOUT_OPEN_MUIC:
 		current_cable_type = POWER_SUPPLY_TYPE_TIMEOUT;
 		break;
@@ -8909,7 +8916,6 @@ static int sec_battery_probe(struct platform_device *pdev)
 	battery->wc_heat_limit = SEC_BATTERY_WC_HEAT_NONE;
 	battery->pad_limit = SEC_BATTERY_WPC_TEMP_NONE;
 
-	sec_bat_set_current_event(battery, SEC_BAT_CURRENT_EVENT_USB_100MA, 0);
 
 #if defined(CONFIG_SEC_MPP_SHARE_LOW_TEMP_WA)
 	battery->is_bat_temp_error = false;
@@ -8944,6 +8950,7 @@ static int sec_battery_probe(struct platform_device *pdev)
 	battery->lcd_status = false;
 	battery->current_event = 0;
 
+	sec_bat_set_current_event(battery, SEC_BAT_CURRENT_EVENT_USB_100MA, 0);
 	battery->ignore_siop = false;
 	battery->input_current_step_up = false;
 
@@ -9034,7 +9041,7 @@ static int sec_battery_probe(struct platform_device *pdev)
 #if defined(CONFIG_CALC_TIME_TO_FULL)
 	INIT_DELAYED_WORK(&battery->timetofull_work, sec_bat_time_to_full_work);
 #endif
-#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER)
+#if defined(CONFIG_USB_TYPEC_MANAGER_NOTIFIER) || defined(CONFIG_ENABLE_100MA_CHARGING_BEFORE_USB_CONFIGURED)
 	INIT_DELAYED_WORK(&battery->slowcharging_work, sec_bat_check_slowcharging_work);
 #endif
 	INIT_DELAYED_WORK(&battery->current_step_work, sec_bat_current_step_work);

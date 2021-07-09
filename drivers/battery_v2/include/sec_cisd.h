@@ -201,28 +201,21 @@ enum {
 	WC_DATA_MAX,
 };
 
-enum {
-	/* 0x01~1F : Single Port */
-	SNGL_NOBLE = 0x10,
-	SNGL_VEHICLE,
-	SNGL_MINI,
-	SNGL_ZERO,
-	SNGL_DREAM,
-	/* 0x20~2F : Multi Port */
-	/* 0x30~3F : Stand Type */
-	STAND_HERO = 0x30,
-	STAND_DREAM,
-	/* 0x40~4F : External Battery Pack */
-	EXT_PACK = 0x40,
-	EXT_PACK_TA,
-
-	/* 0x50~6F : Reserved */
-	TX_TYPE_MAX = 0x6F,
-};
-
 extern const char *cisd_data_str[];
-extern const char *cisd_wc_data_str[];
 extern const char *cisd_data_str_d[];
+
+#define PAD_INDEX_STRING	"INDEX"
+#define PAD_INDEX_VALUE		1
+#define PAD_JSON_STRING		"PAD_0x"
+#define MAX_PAD_ID			0xFF
+
+struct pad_data {
+	unsigned int id;
+	unsigned int count;
+
+	struct pad_data* prev;
+	struct pad_data* next;
+};
 
 struct cisd {
 	unsigned int cisd_alg_index;
@@ -264,7 +257,10 @@ struct cisd {
 	/* Big Data Field */
 	int capacity_now;
 	int data[CISD_DATA_MAX_PER_DAY];
-	int wc_data[WC_DATA_MAX];
+
+	struct mutex padlock;
+	struct pad_data* pad_array;
+	unsigned int pad_count;
 
 #if defined(CONFIG_QH_ALGORITHM)
 	unsigned long prev_time;
@@ -275,5 +271,8 @@ struct cisd {
 	int qh_vfsoc_now;
 #endif
 };
+
+void init_cisd_pad_data(struct cisd *cisd);
+void count_cisd_pad_data(struct cisd *cisd, unsigned int pad_id);
 
 #endif /* __SEC_CISD_H */

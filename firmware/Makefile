@@ -173,30 +173,18 @@ ifdef CONFIG_SEC_A6PLTE_PROJECT
 fw-shipped-$(CONFIG_SENSORS_A96T3X6) 		+= abov/a96t326_j8plte.fw \
 											   abov/a96t346_j8plte.fw
 endif
-ifdef CONFIG_SEC_GTESY18LTE_PROJECT
-fw-shipped-$(CONFIG_SENSORS_A96T3X6) 		+= abov/a96t326_gtesy18lte.fw
-fw-shipped-$(CONFIG_SENSORS_A96T3X6_WIFI) 	+= abov/a96t326_gtesy18wifi.fw
-fw-shipped-$(CONFIG_SENSORS_A96T3X6_SUB) 	+= abov/a96t326_gtesy18sub.fw
-# The following FW are just to support only for development HW revisions upto Rev 0.2
-ifndef CONFIG_SAMSUNG_PRODUCT_SHIP
-fw-shipped-$(CONFIG_SENSORS_A96T3X6) 		+= abov/a96t326_gtesy18lte_hw_rev00.fw
-fw-shipped-$(CONFIG_SENSORS_A96T3X6_WIFI) 	+= abov/a96t326_gtesy18wifi_hw_rev00.fw
-fw-shipped-$(CONFIG_SENSORS_A96T3X6_SUB) 	+= abov/a96t326_gtesy18sub_hw_rev00.fw
-endif
+ifdef CONFIG_SEC_J8Y18LTE_PROJECT
+fw-shipped-$(CONFIG_SENSORS_A96T3X6) 		+= abov/a96t346_j8y18lte.fw \
+											   abov/a96t326_j8y18lte.fw \
+											   abov/a96t326_j8y18lte_ym.fw
 endif
 ifdef CONFIG_SEC_GTESY18LTE_PROJECT
 fw-shipped-$(CONFIG_TOUCHSCREEN_ZINITIX_ZT75XX_TCLM) += tsp_zinitix/zt7548_gtes.fw tsp_zinitix/zt7548_gtes_rev00.fw
 endif
 ifdef CONFIG_SEC_GTASLITELTE_PROJECT
-fw-shipped-$(CONFIG_SENSORS_A96T3X6) 		+= abov/a96t326_gtesy18lte.fw
-fw-shipped-$(CONFIG_SENSORS_A96T3X6_WIFI) 	+= abov/a96t326_gtesy18wifi.fw
-fw-shipped-$(CONFIG_SENSORS_A96T3X6_SUB) 	+= abov/a96t326_gtesy18sub.fw
-# The following FW are just to support only for development HW revisions upto Rev 0.2
-ifndef CONFIG_SAMSUNG_PRODUCT_SHIP
-fw-shipped-$(CONFIG_SENSORS_A96T3X6) 		+= abov/a96t326_gtesy18lte_hw_rev00.fw
-fw-shipped-$(CONFIG_SENSORS_A96T3X6_WIFI) 	+= abov/a96t326_gtesy18wifi_hw_rev00.fw
-fw-shipped-$(CONFIG_SENSORS_A96T3X6_SUB) 	+= abov/a96t326_gtesy18sub_hw_rev00.fw
-endif
+fw-shipped-$(CONFIG_SENSORS_A96T3X6) 		+= abov/a96t326_gtesy18lte.fw abov/a96t326_gtesy18lte_hw_rev00.fw
+fw-shipped-$(CONFIG_SENSORS_A96T3X6_WIFI) 	+= abov/a96t326_gtesy18wifi.fw abov/a96t326_gtesy18wifi_hw_rev00.fw
+fw-shipped-$(CONFIG_SENSORS_A96T3X6_SUB) 	+= abov/a96t326_gtesy18sub.fw abov/a96t326_gtesy18sub_hw_rev00.fw
 endif
 ifdef CONFIG_SEC_GTASLITELTE_PROJECT
 fw-shipped-$(CONFIG_TOUCHSCREEN_ZINITIX_ZT75XX_TCLM) += tsp_zinitix/zt7548_gtaslite.fw tsp_zinitix/zt7548_gtaslite_rev00.fw
@@ -242,7 +230,27 @@ ifdef CONFIG_SEC_A6PLTE_PROJECT
 fw-shipped-$(CONFIG_TOUCHSCREEN_SEC_TS) += tsp_sec/y661_a6plus.fw
 endif
 
+ifdef CONFIG_SEC_J5Y18LTE_PROJECT
+fw-shipped-$(CONFIG_TOUCHSCREEN_SEC_INCELL_TS) += tsp_sec/s6d7at01a01_j5y18lte.fw tsp_sec/s6d7at01a01_j5y18lte_hd.fw
+endif
+
+ifdef CONFIG_SEC_J6PRIMELTE_PROJECT
+fw-shipped-$(CONFIG_TOUCHSCREEN_SEC_INCELL_TS) += tsp_sec/s6d7at01a01_j5y18lte.fw tsp_sec/s6d7at01a01_j5y18lte_hd.fw
+endif
+
+ifdef CONFIG_SEC_J4PRIMELTE_PROJECT
+fw-shipped-$(CONFIG_TOUCHSCREEN_SEC_INCELL_TS) += tsp_sec/s6d7at01a01_j4prime.fw
+endif
+
+ifdef CONFIG_SEC_J4CORELTE_PROJECT
+fw-shipped-$(CONFIG_TOUCHSCREEN_SEC_INCELL_TS) += tsp_sec/s6d7at01a01_j4core.fw tsp_sec/s6d7at01a01_j4core_hd.fw
+endif
+
 ifdef CONFIG_SEC_J6PLTE_PROJECT
+fw-shipped-$(CONFIG_TOUCHSCREEN_ZINITIX_ZT75XX_TCLM) += tsp_zinitix/zt7548_j8.fw
+endif
+
+ifdef CONFIG_SEC_J8Y18LTE_PROJECT
 fw-shipped-$(CONFIG_TOUCHSCREEN_ZINITIX_ZT75XX_TCLM) += tsp_zinitix/zt7548_j8.fw
 endif
 

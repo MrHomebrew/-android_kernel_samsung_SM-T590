@@ -23,7 +23,7 @@
  * PN544_SET_PWR(1): power on
  * PN544_SET_PWR(2): reset and power on with firmware download enabled
  */
-#define PN547_SET_PWR	_IOW(PN547_MAGIC, 0x01, unsigned int)
+#define PN547_SET_PWR	_IOW(PN547_MAGIC, 0x01, long)
 
 /*
  * SPI Request NFCC to enable p61 power, only in param
@@ -31,19 +31,19 @@
  * level 1 = Enable power
  * level 0 = Disable power
  */
-#define P61_SET_SPI_PWR    _IOW(PN547_MAGIC, 0x02, unsigned int)
+#define P61_SET_SPI_PWR    _IOW(PN547_MAGIC, 0x02, long)
 
 /* SPI or DWP can call this ioctl to get the current
  * power state of P61
  *
 */
-#define P61_GET_PWR_STATUS    _IOR(PN547_MAGIC, 0x03, unsigned int)
+#define P61_GET_PWR_STATUS    _IOR(PN547_MAGIC, 0x03, long)
 
 /* DWP side this ioctl will be called
  * level 1 = Wired access is enabled/ongoing
  * level 0 = Wired access is disalbed/stopped
 */
-#define P61_SET_WIRED_ACCESS _IOW(PN547_MAGIC, 0x04, unsigned int)
+#define P61_SET_WIRED_ACCESS _IOW(PN547_MAGIC, 0x04, long)
 /*
  *  NFC Init will call the ioctl to register the PID with the i2c driver
  */
@@ -109,3 +109,5 @@ enum jcop_dwnld_state {
 };
 
 extern unsigned int lpcharge;
+extern int ese_spi_pinctrl(int enable);
+extern int poweroff_charging;

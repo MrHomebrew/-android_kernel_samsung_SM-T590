@@ -28,6 +28,8 @@
 #include <linux/leds-sm5708.h>
 #elif defined(CONFIG_LEDS_KTD2692)
 #include <linux/leds-ktd2692.h>
+#elif defined(CONFIG_LEDS_S2MU005)
+#include <linux/leds-s2mu005.h>
 #else
 #include <linux/leds/msm_ext_pmic_flash.h>
 
@@ -622,6 +624,7 @@ static int32_t msm_flash_init_prepare(
 	}
 
 	flash_data_k.cfg.flash_init_info = &flash_init_info;
+        flash_data_k.flash_position = flash_data->flash_position;
 	if (copy_from_user(&flash_init_info,
 		(void __user *)(flash_data->cfg.flash_init_info),
 		sizeof(struct msm_flash_init_info_t))) {
@@ -809,6 +812,9 @@ static int32_t msm_flash_config(struct msm_flash_ctrl_t *flash_ctrl,
 		if (flash_ctrl->flash_state != MSM_CAMERA_FLASH_RELEASE) {
 			rc = flash_ctrl->func_tbl->camera_flash_release(
 				flash_ctrl);
+                        if (!rc)
+                                flash_ctrl->flash_state = MSM_CAMERA_FLASH_RELEASE;
+
 		} else {
 			CDBG(pr_fmt("Invalid state : %d\n"),
 				flash_ctrl->flash_state);
@@ -868,8 +874,12 @@ static int32_t msm_flash_config(struct msm_flash_ctrl_t *flash_ctrl,
 			(flash_ctrl->flash_state == MSM_CAMERA_FLASH_TORCH)) {
 			rc = flash_ctrl->func_tbl->camera_flash_torch(
 				flash_ctrl, flash_data);
-			//if (!rc)
-				//flash_ctrl->flash_state = MSM_CAMERA_FLASH_TORCH;
+                /*In this command only the torch current will be set
+                 *Torch ON will happen with CFG_FLASH_TORCH command
+                 */
+		/*	if (!rc)
+		 		flash_ctrl->flash_state = MSM_CAMERA_FLASH_TORCH;
+                 */
 		}
 		break;		
 	default:

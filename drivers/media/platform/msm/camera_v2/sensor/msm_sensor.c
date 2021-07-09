@@ -41,10 +41,6 @@ uint32_t sec_sensor_clk_size;
 static struct cam_hw_param_collector cam_hwparam_collector;
 #endif
 
-#if defined(CONFIG_LEDS_KTD2692)
-extern void ktd2692_flash_on(unsigned data);
-#endif
-
 #undef CDBG
 #define CDBG(fmt, args...) pr_err(fmt, ##args)
 
@@ -173,14 +169,6 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		sm5705_fled_muic_camera_flash_work_off();
 	}
 #endif
-
-#if defined(CONFIG_LEDS_KTD2692)
-	if(s_ctrl->sensordata->slave_info->sensor_id == 0x5e30){
-		pr_err("%s : Front LED turn off\n", __func__);
-		ktd2692_flash_on(0);
-	}
-#endif
-
 
 	/* Power down secure session if it exist*/
 	if (s_ctrl->is_secure)

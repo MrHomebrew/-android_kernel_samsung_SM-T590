@@ -138,21 +138,26 @@ static int s2mu004_charger_otg_control(struct s2mu004_charger_data *charger, boo
 		}
 		s2mu004_update_reg(charger->i2c, 0xAE, 0x80, 0xF0);
 
+#if defined(CONFIG_NEW_FACTORY_MODE)
 		/* ULDO ON a moment before OFF. (Issue was occured in NEW FACTORY MODE model)
 		   ULDO EN condition : high than CHGIN UVLO && NO OTG MODE */
 		msleep(1000);
 		/* USB LDO on */
 		s2mu004_update_reg(charger->i2c, S2MU004_PWRSEL_CTRL0,
 				1 << PWRSEL_CTRL0_SHIFT, PWRSEL_CTRL0_MASK);
+#endif
 	} else {
 		s2mu004_update_reg(charger->i2c, S2MU004_CHG_CTRL4,
 					S2MU004_SET_OTG_OCP_1500mA << SET_OTG_OCP_SHIFT, SET_OTG_OCP_MASK);
-		msleep(30);
+		msleep(10);
 		s2mu004_update_reg(charger->i2c, 0xAE, 0x00, 0xF0);
 		s2mu004_update_reg(charger->i2c, S2MU004_CHG_CTRL0, OTG_BST_MODE, REG_MODE_MASK);
+
+#if defined(CONFIG_NEW_FACTORY_MODE)
 		/* USB LDO off */
 		s2mu004_update_reg(charger->i2c, S2MU004_PWRSEL_CTRL0,
 				0 << PWRSEL_CTRL0_SHIFT, PWRSEL_CTRL0_MASK);
+#endif
 	}
 	mutex_unlock(&charger->charger_mutex);
 	s2mu004_read_reg(charger->i2c, S2MU004_CHG_STATUS2, &chg_sts2);
@@ -566,9 +571,9 @@ static bool s2mu004_chg_init(struct s2mu004_charger_data *charger)
 	/* ready for self-discharge, 0x76 */
 	s2mu004_update_reg(charger->i2c, S2MU004_REG_SELFDIS_CFG3,
 			SELF_DISCHG_MODE_MASK, SELF_DISCHG_MODE_MASK);
-	/* Set Top-Off timer to 30 minutes */
+	/* Set Top-Off timer to 90 minutes */
 	s2mu004_update_reg(charger->i2c, S2MU004_CHG_CTRL17,
-			S2MU004_TOPOFF_TIMER_30m << TOP_OFF_TIME_SHIFT,
+			S2MU004_TOPOFF_TIMER_90m << TOP_OFF_TIME_SHIFT,
 			TOP_OFF_TIME_MASK);
 	s2mu004_read_reg(charger->i2c, S2MU004_CHG_CTRL17, &temp);
 	pr_info("%s : S2MU004_CHG_CTRL17 : 0x%x\n", __func__, temp);
@@ -734,6 +739,19 @@ static int s2mu004_get_charging_health(struct s2mu004_charger_data *charger)
 	
 	if (charger->is_charging)
 		s2mu004_wdt_clear(charger);
+	/* To prevent disabling charging by top-off timer expiration */
+	s2mu004_read_reg(charger->i2c, S2MU004_CHG_STATUS1, &ret);
+	pr_info("[DEBUG] %s: S2MU004_CHG_STATUS1 0x%x\n", __func__, ret);
+	if (ret & (DONE_STATUS_MASK)) {
+		pr_err("add self chg done \n");
+		/* add chg done code here */
+		if (charger->status == POWER_SUPPLY_STATUS_CHARGING) {
+			s2mu004_enable_charger_switch(charger, false);
+			s2mu004_enable_charger_switch(charger, true);
+			pr_err("Re-enable charging from Done_status \n");
+		}
+	}
+
 	s2mu004_read_reg(charger->i2c, S2MU004_CHG_STATUS0, &ret);
 	pr_info("[DEBUG] %s: S2MU004_CHG_STATUS0 0x%x\n", __func__, ret);
 	if (is_wcin_type(charger->cable_type)) {
@@ -955,6 +973,10 @@ static int s2mu004_chg_set_property(struct power_supply *psy, enum power_supply_
 		charger->cable_type = val->intval;
 		pr_info("[DEBUG] %s: charger->cable_type(%d)\n", __func__, charger->cable_type);
 		charger->ivr_on = false;
+#if defined(CONFIG_MUIC_S2MU004_SUPPORT_BC1P2_CERTI)
+		if (charger->cable_type == SEC_BATTERY_CABLE_NONE)
+			s2mu004_set_input_current_limit(charger, 100);
+#endif
 		if (charger->cable_type != SEC_BATTERY_CABLE_OTG) {
 			if (is_nocharge_type(charger->cable_type)) {
 				value.intval = 0;
@@ -1172,7 +1194,8 @@ static int s2mu004_chg_set_property(struct power_supply *psy, enum power_supply_
 				/* USB LDO off */
 				s2mu004_update_reg(charger->i2c, S2MU004_PWRSEL_CTRL0,
 					0 << PWRSEL_CTRL0_SHIFT, PWRSEL_CTRL0_MASK);
-				
+					
+				value.intval = SEC_BAT_FGSRC_SWITCHING_OFF;
 				psy_do_property("s2mu004-fuelgauge", set,
 					POWER_SUPPLY_EXT_PROP_FUELGAUGE_FACTORY, value);
 			} else {

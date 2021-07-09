@@ -103,7 +103,11 @@
 #endif
 #define FP_POWER_CONTROL_ET5XX			0x18
 #define FP_SENSOR_ORIENT				0x19
-#define FP_IOCTL_RESERVED_01			0x12
+#define FP_SPI_VALUE					0x1a
+#define FP_IOCTL_RESERVED_01				0x1b
+#define FP_IOCTL_RESERVED_02				0x1c
+
+
 
 /* trigger signal initial routine */
 #define INT_TRIGGER_INIT				0xa4
@@ -143,6 +147,26 @@ struct egis_ioc_transfer {
 
 };
 
+/*
+ *	If platform is 32bit and kernel is 64bit
+ *	We will alloc egis_ioc_transfer for 64bit and 32bit
+ *	We use ioc_32(32bit) to get data from user mode.
+ *	Then copy the ioc_32 to ioc(64bit).
+ */
+#ifdef CONFIG_SENSORS_FINGERPRINT_32BITS_PLATFORM_ONLY
+struct egis_ioc_transfer_32 {
+	u32 tx_buf;
+	u32 rx_buf;
+	u32 len;
+	u32 speed_hz;
+	u16 delay_usecs;
+	u8 bits_per_word;
+	u8 cs_change;
+	u8 opcode;
+	u8 pad[3];
+};
+#endif
+
 #define EGIS_IOC_MAGIC			'k'
 #define EGIS_MSGSIZE(N) \
 	((((N)*(sizeof(struct egis_ioc_transfer))) < (1 << _IOC_SIZEBITS)) \
@@ -176,7 +200,10 @@ struct etspi_data {
 	struct workqueue_struct *wq_dbg;
 	struct timer_list dbg_timer;
 	int sensortype;
+	u32 spi_value;
 	struct device *fp_device;
+	int reset_count;
+	int interrupt_count;
 #ifdef ENABLE_SENSORS_FPRINT_SECURE
 	bool enabled_clk;
 	bool isGpio_cfgDone;

@@ -439,7 +439,7 @@ void handle_muic_fake_event(int event)
 		case EVENT_LOAD:
 			if(typec_manager.muic_attach_state_without_ccic
 				|| typec_manager.ccic_drp_state == USB_STATUS_NOTIFY_ATTACH_UFP) {
-				schedule_delayed_work(&typec_manager.vbus_noti_work, msecs_to_jiffies(1000));
+				schedule_delayed_work(&typec_manager.vbus_noti_work, msecs_to_jiffies(1500));
 				typec_manager.muic_fake_event_wq_processing = 1;
 			}
 			break;
@@ -755,7 +755,9 @@ static int manager_handle_vbus_notification(struct notifier_block *nb,
 		typec_manager.muic_attach_state_without_ccic);
 
 	typec_manager.vbus_state = vbus_type;
+#if defined(CONFIG_SEC_GTA2XLLTE_PROJECT) || defined(CONFIG_SEC_GTA2XLWIFI_PROJECT)
 	s2mm005_set_vbus_status(typec_manager.vbus_state, 0);
+#endif
 
 	switch (vbus_type) {
 	case STATUS_VBUS_HIGH:

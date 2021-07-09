@@ -105,6 +105,7 @@
 #define DEV_TYPE1_AUDIO_1		(0x1 << 0)
 #define DEV_TYPE1_USB_TYPES		(DEV_TYPE1_USB_OTG | DEV_TYPE1_CDP | DEV_TYPE1_USB)
 #define DEV_TYPE1_CHG_TYPES		(DEV_TYPE1_DEDICATED_CHG | DEV_TYPE1_CDP)
+#define DEV_TYPE1_DEDICATED_CHG2	(0x44)
 
 /* S2MU005 MUIC Device Type 2 register */
 #define DEV_TYPE2_SDP_1P8S		(0x1 << 7)
@@ -135,6 +136,7 @@
 #define DEV_TYPE_APPLE_RID_WAKEUP		(0x1 << 2)
 #define DEV_TYPE_APPLE_VBUS_WAKEUP		(0x1 << 1)
 #define DEV_TYPE_APPLE_BCV1P2_OR_OPEN	(0x1 << 0)
+#define DEV_TYPE_APPLE_APPLE_CHG		(0xf << 4)
 
 /* S2MU005 MUIC CHG Type register */
 #define CHG_TYPE_VBUS_R255	(0x1 << 7)
@@ -228,6 +230,8 @@ struct s2mu005_muic_data {
 	/* muic Device ID */
 	u8 muic_vendor;			/* Vendor ID */
 	u8 muic_version;		/* Version ID */
+	bool is_dcp;
+	struct delayed_work dp_0p6v;
 
 	bool	is_usb_ready;
 	bool	is_factory_start;
@@ -241,7 +245,12 @@ struct s2mu005_muic_data {
 	/* W/A waiting for the charger ic */
 	bool suspended;
 	bool need_to_noti;
-
+#if defined(CONFIG_S2MU005_SUPPORT_BC1P2_CERTI)
+	struct mutex recheck_mutex;
+	struct delayed_work cable_recheck;
+	bool usb_type_rechecked;
+	u8 vbus_ldo;
+#endif
 	struct workqueue_struct *muic_wqueue;
 
 	int rev_id;

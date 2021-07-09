@@ -140,6 +140,14 @@ enum tfa98xx_error tfa_cont_write_files(int dev_idx);
 unsigned int tfa98xx_get_profile_sr(int dev_idx, unsigned int prof_idx);
 
 /**
+ * Get channel selection from passed profile index
+ * @param dev_idx the index of the device
+ * @param prof_idx the index of the profile
+ * @return CHSA value (Max1)
+ */
+unsigned int tfa98xx_get_profile_chsa(int dev_idx, unsigned int prof_idx);
+
+/**
  * Open the specified device after looking up the target address.
  * @param dev_idx the index of the device
  * @return Tfa98xx_Error

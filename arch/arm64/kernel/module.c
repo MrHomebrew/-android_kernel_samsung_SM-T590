@@ -26,6 +26,7 @@
 #include <linux/mm.h>
 #include <linux/moduleloader.h>
 #include <linux/vmalloc.h>
+#include <asm/alternative.h>
 #include <asm/insn.h>
 #include <linux/random.h>
 #include <asm/sections.h>
@@ -51,21 +52,29 @@ void *module_alloc(unsigned long size)
 		if (randomize_module_space)
 			module_va += ALIGN( get_random_int() %  RANDOMIZE_MODULE_REGION, PAGE_SIZE * 4); 
 	}
-	p = __vmalloc_node_range(size, 1, module_va, MODULES_END,
+
+	p = __vmalloc_node_range(size, MODULE_ALIGN, module_va, MODULES_END,
 				    GFP_KERNEL, PAGE_KERNEL_EXEC, 0, 
 				    NUMA_NO_NODE, __builtin_return_address(0));
 	
-#else
-	p = __vmalloc_node_range(size, MODULE_ALIGN, MODULES_VADDR, MODULES_END,
-				GFP_KERNEL, PAGE_KERNEL_EXEC, 0,
-				NUMA_NO_NODE, __builtin_return_address(0));
-#endif
 	if (p && (kasan_module_alloc(p, size) < 0)) {
 		vfree(p);
 		return NULL;
 	}
 
 	return p;
+#else
+	p = __vmalloc_node_range(size, MODULE_ALIGN, MODULES_VADDR, MODULES_END,
+				GFP_KERNEL, PAGE_KERNEL_EXEC, 0,
+				NUMA_NO_NODE, __builtin_return_address(0));
+
+	if (p && (kasan_module_alloc(p, size) < 0)) {
+		vfree(p);
+		return NULL;
+	}
+
+	return p;
+#endif
 }
 
 enum aarch64_reloc_op {

@@ -21,7 +21,7 @@
 
 /*
  * All voltages, currents, charges, energies, time and temperatures in uV,
- * ¥ìA, ¥ìAh, ¥ìWh, seconds and tenths of degree Celsius unless otherwise
+ * ï¿½ï¿½A, ï¿½ï¿½Ah, ï¿½ï¿½Wh, seconds and tenths of degree Celsius unless otherwise
  * stated. It's driver's job to convert its raw values to units in which
  * this class operates.
  */

@@ -176,14 +176,19 @@ static int set_reset_reason_proc_show(struct seq_file *m, void *v)
 		rr_cnt_update = 0;
 	}
 #else
-	sec_get_param(param_index_last_reset_reason, &rr_data);
-
-	seq_printf(m, "%sON\n", sec_debug_get_reset_reason_str(rr_data));
 	if (rr_cnt_update) {
+		sec_get_param(param_index_last_reset_reason, &rr_data);
+		reset_reason = rr_data;
+		pr_info("partition[%d] result[%s]\n",
+			rr_data, sec_debug_get_reset_reason_str(rr_data));
+
 		rr_data = 0;
 		sec_set_param(param_index_last_reset_reason, &rr_data);
 		rr_cnt_update = 0;
 	}
+
+	rr_data = sec_debug_get_reset_reason();	
+	seq_printf(m, "%sON\n", sec_debug_get_reset_reason_str(rr_data));
 #endif
 
 	return 0;

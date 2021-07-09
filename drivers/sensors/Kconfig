@@ -110,6 +110,13 @@ config SENSORS_CM36686
 	help
 	  This option enables proximity & light sensors using CM36686 driver.
 
+config SENSORS_STK3328
+	depends on I2C
+	tristate "STK3328 driver"
+	default n
+	help
+	  This option enables proximity & light sensors using STK3328 driver.
+
 config SENSORS_CM36686_LEDA_EN_GPIO
 	depends on I2C
 	tristate "CM36686 leda_en controlled by GPIO"

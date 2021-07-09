@@ -880,8 +880,10 @@ static struct clk_freq_tbl ftbl_gcc_blsp1_2_qup1_4_spi_apps_clk[] = {
 
 static struct clk_freq_tbl ftbl_gcc_blsp1_2_qup1_4_spi_apps_clk_8917[] = {
 	F( 960000,	xo,	10,	1,	2),
+	F( 4000000, gpll0, 10, 1, 20),
 	F( 4800000,	xo,	4,	0,	0),
 	F( 9600000,	xo,	2,	0,	0),
+	F( 12500000, gpll0, 16, 1, 4),
 	F( 16000000,	gpll0,	10,	1,	5),
 	F( 19200000,	xo,	1,	0,	0),
 	F( 25000000,	gpll0,	16,	1,	2),

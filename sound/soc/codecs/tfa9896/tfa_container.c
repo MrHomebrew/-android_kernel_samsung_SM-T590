@@ -1728,7 +1728,7 @@ unsigned int tfa98xx_get_profile_sr(int dev_idx, unsigned int prof_idx)
 		if (prof->list[i].type == dsc_default)
 			break;
 
-		/* check for profile settingd (AUDFS) */
+		/* check for profile setting (AUDFS) */
 		if (prof->list[i].type == dsc_bit_field) {
 			bitf = (struct tfa_bitfield *)
 				(prof->list[i].offset+(uint8_t *)g_cont);
@@ -1772,6 +1772,74 @@ unsigned int tfa98xx_get_profile_sr(int dev_idx, unsigned int prof_idx)
 		return tfa98xx_sr_from_field(fs_profile);
 
 	return 48000;
+}
+
+unsigned int tfa98xx_get_profile_chsa(int dev_idx, unsigned int prof_idx)
+{
+	struct tfa_bitfield *bitf;
+	unsigned int i;
+	struct tfa_device_list *dev;
+	struct tfa_profile_list *prof;
+	int chsa_profile = -1;
+
+	/* bypass case in Max1 */
+	if (tfa98xx_dev_family(dev_idx) != 1)
+		return 0;
+
+	dev = tfa_cont_device(dev_idx);
+	if (!dev)
+		return 0;
+
+	prof = tfa_cont_profile(dev_idx, prof_idx);
+	if (!prof)
+		return 0;
+
+	/* Check profile fields first */
+	for (i = 0; i < prof->length; i++) {
+		if (prof->list[i].type == dsc_default)
+			break;
+
+		/* check for profile setting (CHSA) */
+		if (prof->list[i].type == dsc_bit_field) {
+			bitf = (struct tfa_bitfield *)
+				(prof->list[i].offset+(uint8_t *)g_cont);
+			if (bitf->field == TFA1_BF_CHSA) {
+				chsa_profile = bitf->value;
+				break;
+			}
+		}
+	}
+
+	pr_debug("%s - profile chsa: 0x%x (%d - %d)\n", __func__,
+		 chsa_profile, dev_idx, prof_idx);
+	if (chsa_profile != -1)
+		return chsa_profile;
+
+	/* Check for container default setting */
+	/* process the list until a patch, file of profile is encountered */
+	for (i = 0; i < dev->length; i++) {
+		if (dev->list[i].type == dsc_patch
+			|| dev->list[i].type == dsc_file
+			|| dev->list[i].type == dsc_profile)
+			break;
+
+		if (dev->list[i].type == dsc_bit_field) {
+			bitf = (struct tfa_bitfield *)
+				(dev->list[i].offset+(uint8_t *)g_cont);
+			if (bitf->field == TFA1_BF_CHSA) {
+				chsa_profile = bitf->value;
+				break;
+			}
+		}
+		/* Ignore register case */
+	}
+
+	pr_debug("%s - default chsa: 0x%x (%d - %d)\n", __func__,
+		chsa_profile, dev_idx, prof_idx);
+	if (chsa_profile != -1)
+		return chsa_profile;
+
+	return tfa_get_bf(dev_idx, TFA1_BF_CHSA);
 }
 
 enum tfa98xx_error

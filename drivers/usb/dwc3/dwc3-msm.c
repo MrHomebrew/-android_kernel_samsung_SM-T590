@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1842,10 +1842,8 @@ static void dwc3_msm_notify_event(struct dwc3 *dwc, unsigned event,
 		dwc3_msm_write_reg(mdwc->base, DWC3_GCTL, reg);
 		dwc->err_evt_seen = false;
 
-#ifndef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 		/* restart USB which performs full reset and reconnect */
 		schedule_work(&mdwc->restart_usb_work);
-#endif
 		break;
 	case DWC3_CONTROLLER_RESET_EVENT:
 		dev_dbg(mdwc->dev, "DWC3_CONTROLLER_RESET_EVENT received\n");
@@ -2184,6 +2182,12 @@ static int dwc3_msm_suspend(struct dwc3_msm *mdwc)
 		pr_err("%s(): Trying to go in LPM with state:%d\n",
 					__func__, dwc->gadget.state);
 		pr_err("%s(): LPM is not performed.\n", __func__);
+		return -EBUSY;
+	}
+
+	if (!mdwc->in_host_mode && (mdwc->vbus_active && !mdwc->suspend)) {
+		dev_dbg(mdwc->dev,
+			"Received wakeup event before the core suspend\n");
 		return -EBUSY;
 	}
 
@@ -3896,7 +3900,6 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 		if (!mdwc->host_only_mode)
 			dwc3_post_host_reset_core_init(dwc);
 
-		pm_runtime_mark_last_busy(mdwc->dev);
 		pm_runtime_put_sync_autosuspend(mdwc->dev);
 
 		dbg_event(0xFF, "StopHost psync",
@@ -4348,6 +4351,12 @@ static void dwc3_msm_otg_sm_work(struct work_struct *w)
 			pm_runtime_get_sync(mdwc->dev);
 			dbg_event(0xFF, "SUSP gsync",
 				atomic_read(&mdwc->dev->power.usage_count));
+		} else {
+			/*
+			 * Release PM Wakelock if PM resume had happened from
+			 * peripheral mode bus suspend case.
+			 */
+			pm_relax(mdwc->dev);
 		}
 		break;
 
